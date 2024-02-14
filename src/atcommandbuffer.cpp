@@ -7,13 +7,19 @@ static const char tx_debug_tag[] = "[DEBUG][TX] >>>";
 // static const char res_ok[] = "0\r";
 // static const char res_err[] = "4\r";
 
-static void atDebugRxBuffer(bool start = true) {
+/**
+ * @brief Add a preamble to raw character debug or newline for other debug
+ * @param raw Adds a preamble for raw character logging
+*/
+void AtCommandBuffer::toggleRaw(bool raw) {
   #ifdef ARDUINO
-  if ((int)LOG_GET_LEVEL() > 3) {
-    if (start) {
+  if (LOG_GET_LEVEL() > DebugLogLevel::LVL_INFO) {
+    if (raw && !debug_raw) {
       PRINT(rx_debug_tag, "");
-    } else {
+      debug_raw = true;
+    } else if (!raw && debug_raw) {
       PRINTLN();
+      debug_raw = false;
     }
   }
   #endif
@@ -104,7 +110,7 @@ bool AtCommandBuffer::checkUrc(const char* read_until, time_t timeout) {
     read_until = v1PreSuffix;
   clearRxBuffer();
   time_t start = millis();
-  while (millis() - start < 1000UL * timeout) {
+  while (millis() - start < timeout) {
     readSerialChar(false, true);
     if (strlen(responsePtr()) > strlen(read_until) &&
         endsWith(responsePtr(), read_until))
@@ -130,7 +136,7 @@ bool AtCommandBuffer::sendAtCommand(const char *at_command, uint16_t timeout) {
   }
   pending_command[strlen(pending_command)] = '\r';
   #ifdef ARDUINO
-  if ((int)LOG_GET_LEVEL() > 3)
+  if (LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG)
     PRINTLN(tx_debug_tag, atDebugString(pending_command));
   #endif
   serial.print(pending_command);
@@ -149,34 +155,36 @@ bool AtCommandBuffer::readAtResponse(uint16_t timeout) {
   if (this->reentrant)
     return false;
   this->reentrant = true;
-  uint8_t tick = (int)LOG_GET_LEVEL() > 3 ? 1 : 0;
-  // serial.flush();   // probably redundant
-  // clearRxBuffer();   // probably redundant
   cmd_parsing = echo ? PARSE_ECHO : PARSE_RESPONSE;
-  uint8_t countdown = timeout;
-  atDebugRxBuffer();
-  for (uint32_t start=millis(); millis() - start < timeout;) {
+  uint16_t countdown = (uint16_t)(timeout / 1000);
+  size_t tick = LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG ? 1 : 0;
+  LOG_TRACE("[", millis(), "] Timeout:", timeout, "ms; Countdown:", countdown, "s");
+  for (size_t start = millis(); millis() - start < timeout;) {
     while (serial.available() > 0 && cmd_parsing < PARSE_OK) {
+      toggleRaw(true);
       readSerialChar(false, true);
       char last = lastCharRead();
-      atDebugRxBuffer(false);
       if (last == AT_LF) {
         // unsolicited, V0 info-suffix/multiline sep, V1 prefix/multiline/suffix
         char* res = responsePtr();
         if (cmd_parsing == PARSE_ECHO || !startsWith(res, v1PreSuffix)) {
           // check if V0 info suffix or multiline separator
           if (lastCharRead(2) != AT_CR) {
+            toggleRaw(false);
             LOG_WARN("Unexpected response data removed: %s", res);
             clearRxBuffer();
           }
         }
         if (endsWith(res, vres_ok)) {
+          toggleRaw(false);
           cmd_parsing = parsingOk();
           verbose = true;
         } else if (endsWith(res, vres_err)) {
+          toggleRaw(false);
           cmd_parsing = parsingError();
           verbose = true;
         } else if (cmd_parsing == PARSE_CRC) {
+          toggleRaw(false);
           LOG_DEBUG("CRC parsing complete");
           if (!cmd_result_ok) {
             cmd_parsing = PARSE_ERROR;
@@ -194,6 +202,7 @@ bool AtCommandBuffer::readAtResponse(uint16_t timeout) {
       } else if (last == AT_CR) {
         char* res = responsePtr();
         if (endsWith(res, pending_command)) {
+          toggleRaw(false);
           if (!startsWith(res, pending_command))
             LOG_WARN("Unexpected pre-echo data removed: %s", res);
           LOG_DEBUG("Echo received - clearing RX buffer");
@@ -203,6 +212,7 @@ bool AtCommandBuffer::readAtResponse(uint16_t timeout) {
           int old_parsing = cmd_parsing;
           char p = serial.peek();
           if (p == -1 || p == CRC_SEP) {
+            toggleRaw(false);
             cmd_parsing = parsingShort(cmd_parsing);
           }
         }
@@ -213,17 +223,20 @@ bool AtCommandBuffer::readAtResponse(uint16_t timeout) {
       }
     }
     if (cmd_parsing >= PARSE_OK) {
+      toggleRaw(false);
       LOG_TRACE("Parsing complete");
       break;   // don't wait for timeout
     }
     if (tick > 0 && strlen(responsePtr()) == 0) {
-      delay(1000 * tick);
-      countdown -= tick;
-      LOG_TRACE("Countdown:", countdown);
+      if ((millis() - start) / 1000 >= tick) {
+        tick++;
+        countdown--;
+        toggleRaw(false);
+        LOG_TRACE("[", millis(), "] Countdown:", countdown);
+      }
     }
-    atDebugRxBuffer();
   }
-  atDebugRxBuffer(false);
+  toggleRaw(false);
   if (cmd_parsing < PARSE_OK) {
     if (cmd_result_ok) {
       if (verbose && endsWith(responsePtr(), "\r")) {
@@ -252,7 +265,7 @@ bool AtCommandBuffer::readAtResponse(uint16_t timeout) {
   clearPendingCommand();
   if (cb_ptr != nullptr) cb_ptr(cmd_error);
   this->reentrant = false;
-  return true;
+  return response_ready;
 }
 
 parse_state_t AtCommandBuffer::parsingOk() {
@@ -332,6 +345,12 @@ void AtCommandBuffer::cleanResponse(const char *prefix) {
   LOG_TRACE("Trimmed and consolidated line feeds:", responsePtr());
 }
 
+bool AtCommandBuffer::setResponseCallback(void (&callback)(at_error_t)) {
+  // TODO validate callback?
+  cb_ptr = callback;
+  return true;
+}
+
 bool AtCommandBuffer::readSerialChar(bool ignore_unprintable, bool is_locked) {
   bool success = false;
   if (!this->reentrant || is_locked) {
@@ -340,7 +359,7 @@ bool AtCommandBuffer::readSerialChar(bool ignore_unprintable, bool is_locked) {
     if (serial.available() > 0) {
       if (!isRxBufferFull()) {
         char c = serial.read();
-        if (!atPrintableChar(c)) {
+        if (!atPrintableChar(c, LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG)) {
           if (ignore_unprintable) {
             success = true;
           }

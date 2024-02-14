@@ -10,18 +10,21 @@
  */
 #include "atstringutils.h"
 
-bool atPrintableChar(const char c) {
+bool atPrintableChar(const char c, bool print) {
   bool printable = true;
+  char to_print[8] = "";
   if (c == 10) {
-    PRINT("<lf>");
+    snprintf(to_print, 8, "<lf>");
   } else if (c == 13) {
-    PRINT("<cr>");
+    snprintf(to_print, 8, "<cr>");
   } else if (c < 32 || c > 125) {
-    PRINT("[", (int)c, "]");
     printable = false;
+    snprintf(to_print, 8, "[%d]", c);
   } else {
-    PRINT(c);
+    snprintf(to_print, 8, "%c", c);
   }
+  if (print)
+    PRINT(to_print);
   return printable;
 }
 

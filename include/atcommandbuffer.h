@@ -26,7 +26,6 @@
 
 #define AT_RXBUFFER_MAX_SIZE 16384  // B64 10000 byte payload = 13336 + wrapper
 #define AT_TXBUFFER_MAX_SIZE 8192   // B64 6400 byte payload = 8536 + wrapper
-#define AT_URCBUFFER_MAX_SIZE 256
 
 #define AT_CR '\r'   // line terminator (default \r)
 #define AT_LF '\n'   // response line formatter (default \n)
@@ -86,6 +85,8 @@ class AtCommandBuffer {
     bool cmd_result_ok = false;
     bool cmd_crc_found = false;
     at_error_t cmd_error = AT_OK;
+    bool debug_raw = false;
+    void toggleRaw(bool raw);
     bool isRxBufferFull();
     bool setPendingCommand(const char* at_command);
     bool readAtResponse(uint16_t timeout = AT_TIMEOUT_MS);
@@ -142,10 +143,11 @@ class AtCommandBuffer {
      * @brief Check the serial line for unsolicited data
      * 
      * @param read_until The line terminator (default <cr><lf>)
+     * @param timeout The time to wait for terminator in msec
      * @return false if busy processing a command or no data found 
      * @return true if unsolicited data found
      */
-    bool checkUrc(const char* read_until=nullptr, time_t timeout = 1);
+    bool checkUrc(const char* read_until=nullptr, time_t timeout = AT_TIMEOUT_MS);
 
     /**
      * @brief Check if the response or URC is ready for retrieval
@@ -153,9 +155,14 @@ class AtCommandBuffer {
     bool responseReady() { return response_ready; }
 
     /**
+     * @brief Get the last error code
+    */
+    at_error_t lastErrorCode() { return cmd_error; }
+
+    /**
      * @brief Register a callback function for response/URC indicator
     */
-    bool setResponseCallback(void (&callback)(at_error_t)) { cb_ptr = callback; }
+    bool setResponseCallback(void (&callback)(at_error_t));
 
   protected:
     Stream &serial;

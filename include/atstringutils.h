@@ -19,9 +19,10 @@
  * Known substitiions: <cr>, <lf>. Unprintable values appear as `[ <int> ]`.
  * 
  * @param c The character to attempt to print
+ * @param print Flag set to debug print
  * @return false If the character is unprintable and not a known substitution
  */
-bool atPrintableChar(const char c);
+bool atPrintableChar(const char c, bool print = false);
 
 /**
  * @brief Print a (c)string using `atPrintableChar` for debug.
