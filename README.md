@@ -34,7 +34,7 @@ If a callback is not specified, the state of response ready may be polled using
     * Sends the command on serial and waits for all data to be sent;
     * Sets the pending command state;
     * Starts the response parsing state transitions to listening mode;
-    * If no timeout is specified, the default is 5 seconds
+    * If no timeout is specified, the default is 1 second
     (`AT_TIMEOUT_DEFAULT_MS`).
 
 2. Response parsing indicates success or failure code accessible via
