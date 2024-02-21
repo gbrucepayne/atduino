@@ -5,19 +5,20 @@ library in the Arduino ecosystem. Several other implementations exist for more
 specific purposes but miss certain functions such as non-verbose (`V0`) mode,
 echo on/off, or unsolicited result codes.
 
+It also provides various text processing utilities with options for `String` or
+`c_str` char arrays to accommodate different board/processor constraints.
+
+## Client
+
+The client functionality is used to talk to a modem (or anything similar that
+supports AT commands).
+
 Allows `HardwareSerial` (*recommended*) or `SoftwareSerial` as a `Stream`
 to interface to a modem via UART.
 
 Allows for processing of command/response or receipt of unsolicited result code
 (URC) emitted by the modem. Also includes an optional CRC validation supported
 by some modems.
-
-Implements various text processing utilities with options for `String` or
-`c_str` char arrays to accommodate different board/processor constraints.
-
-## Client
-
-The client functionality is used to talk to a modem.
 
 ### Command/Response
 
@@ -79,3 +80,8 @@ enable/disable command may be configured using `AT_CRC_ENABLE` (default `"CRC"`)
 ## Server (Work in Progress)
 
 The server concept is to act as a modem/proxy replying to a microcontroller.
+
+The idea is based somewhat on the [ATCommands](https://github.com/yourapiexpert/ATCommands)
+library (but some shortcomings including GPL), and
+[cAT](https://github.com/marcinbor85/cAT/tree/master) but the latter I haven't
+gotten working yet.
