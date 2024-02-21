@@ -15,7 +15,11 @@ by some modems.
 Implements various text processing utilities with options for `String` or
 `c_str` char arrays to accommodate different board/processor constraints.
 
-## Command/Response
+## Client
+
+The client functionality is used to talk to a modem.
+
+### Command/Response
 
 This is the main mode of intended use. The logic flow is as follows:
 
@@ -54,7 +58,7 @@ responses are stored in a *get* buffer for retrieval:
 All other leading/trailing whitespace is removed, and multi-line responses are
 separated by a single line feed (`\n`). Retrieval clears the *get* buffer.
 
-## Unsolicited Result Codes (URC)
+### Unsolicited Result Codes (URC)
 
 Some modems emit unsolicited codes. In these cases it is recommended that the
 application checks/retrieves any URC(s) prior to submitting any AT command.
@@ -67,7 +71,11 @@ URC data is placed in the *get* buffer and retrieved in the same way as a
 commmand response.
 If a callback is registered, it will be passed `AT_URC` code to prompt retrieval.
 
-## CRC support
+### CRC support
 
 Currently a CCITT-16-CRC option is supported for commands and responses. The
 enable/disable command may be configured using `AT_CRC_ENABLE` (default `"CRC"`).
+
+## Server (Work in Progress)
+
+The server concept is to act as a modem/proxy replying to a microcontroller.
