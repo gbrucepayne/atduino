@@ -84,4 +84,4 @@ The server concept is to act as a modem/proxy replying to a microcontroller.
 The idea is based somewhat on the [ATCommands](https://github.com/yourapiexpert/ATCommands)
 library (but some shortcomings including GPL), and
 [cAT](https://github.com/marcinbor85/cAT/tree/master) but the latter I haven't
-gotten working yet.
+gotten working yet. Many thanks to those developers for some great ideas!
