@@ -2,6 +2,7 @@
  * @file atstringutils.h
  * @author G.Bruce-Payne (geoff.bruce-payne@nimarsat.com)
  * @brief String-like char manipulation utilities for memory-constrained devices
+ * also compatible with Arduino String
  * @version 0.1
  * @date 2023-09-25
  * 
@@ -12,7 +13,9 @@
 #define AT_STRING_UTILS_H
 
 #include <Arduino.h>
-#include "atdebuglog.h"
+#include "atdebug.h"
+
+namespace at {
 
 /**
  * @brief Print a printable character or known substitutions or the int value.
@@ -22,30 +25,35 @@
  * @param print Flag set to debug print
  * @return false If the character is unprintable and not a known substitution
  */
-bool atPrintableChar(const char c, bool print = false);
+bool printableChar(const char c, bool print = false);
 
 /**
- * @brief Print a (c)string using `atPrintableChar` for debug.
+ * @brief Print a (c)string using `printableChar` for debug.
  * 
  * @param str The (c)string to debug print
  */
-void atDebugPrint(const char* str);
-void atDebugPrint(const String& str);
+void debugPrint(const char* str);
+void debugPrint(const String& str);
 
 /**
- * @brief Get a string using `atPrintableChar` substitutions for debug.
+ * @brief Get a string using `printableChar` substitutions for debug.
  * 
  * @param str The original string or character
  * @return String The debug-formatted string
  */
-String atDebugString(const char* str);
-String atDebugString(const String& str);
-String atDebugString(const char c);
+String debugString(const char* str);
+String debugString(const String& str);
+String debugString(const char c);
 
 /**
  * @brief Append a string to another string
+ * 
+ * @param target The target (buffer) to append to
+ * @param substr The substring to append
+ * @param buffer_size The maximum size of the target buffer
 */
-bool append(char* target, const char* str, size_t buffer_size);
+bool append(char* target, const char* substr, size_t buffer_size);
+bool append(String& target, const String& substr);
 
 /**
  * @brief Check if a string includes a substring
@@ -206,4 +214,6 @@ size_t base64BufferLength(const char* b64_str);
  */
 size_t base64StringLength(size_t buffersize);
 
-#endif
+}   // namespace at
+
+#endif   // AT_STRING_UTILS_H

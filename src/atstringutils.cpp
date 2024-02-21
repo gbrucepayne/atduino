@@ -10,7 +10,9 @@
  */
 #include "atstringutils.h"
 
-bool atPrintableChar(const char c, bool print) {
+namespace at {
+
+bool printableChar(const char c, bool print) {
   bool printable = true;
   char to_print[8] = "";
   if (c == 10) {
@@ -28,25 +30,21 @@ bool atPrintableChar(const char c, bool print) {
   return printable;
 }
 
-void atDebugPrint(const char *str) {
+void debugPrint(const char* str) {
   size_t str_len = strlen(str);
   for (size_t i = 0; i < str_len; i++) {
-    atPrintableChar(str[i]);
+    printableChar(str[i]);
   }
 }
 
-void atDebugPrint(const String &str) {
+void debugPrint(const String& str) {
   size_t str_len = str.length();
   for (size_t i = 0; i < str_len; i++) {
-    atPrintableChar(str[i]);
+    printableChar(str[i]);
   }
 }
 
-String atDebugString(const char *str) {
-  return atDebugString(String(str));
-}
-
-String atDebugString(const String &str) {
+String debugString(const String &str) {
   String debug_string = "";
   size_t str_len = str.length();
   for (size_t i = 0; i < str_len; i++) {
@@ -64,22 +62,31 @@ String atDebugString(const String &str) {
   return debug_string;
 }
 
-String atDebugString(const char c) {
-  return atDebugString(String(c));
+String debugString(const char* str) {
+  return debugString(String(str));
 }
 
-bool append(char* target, const char* str, size_t buffer_size) {
+String debugString(const char c) {
+  return debugString(String(c));
+}
+
+bool append(char* target, const char* substr, size_t buffer_size) {
   size_t app_idx = strlen(target);
-  size_t adder = strlen(str);
+  size_t adder = strlen(substr);
   size_t new_size = app_idx + adder;
   if (new_size >= buffer_size) return false;
-  strncpy(target + app_idx, str, app_idx + adder);
+  strncpy(target + app_idx, substr, app_idx + adder);
   target[app_idx + adder + 1] = '\0';
   return true;
 }
 
+bool append(String& target, const String& substr) {
+  target = target + substr;
+  return true;
+}
+
 bool includes(const char *str, const char *substr) {
-  // LOG_TRACE("Assessing", atDebugString(str), "for", atDebugString(substr));
+  // LOG_TRACE("Assessing", debugString(str), "for", debugString(substr));
   return strstr(str, substr) != nullptr;
 }
 
@@ -140,16 +147,16 @@ int indexOf(const char *str, const char c) {
 }
 
 int instancesOf(const char *str, const char *substr) {
-  // LOG_TRACE("Searching", atDebugString(str), "for", atDebugString(substr));
+  // LOG_TRACE("Searching", debugString(str), "for", debugString(substr));
   int instances = 0;
   size_t s_len = strlen(str);
   size_t ss_len = strlen(substr);
   size_t char_matches = 0;
   if (ss_len > 0) {
     for (size_t i = 0, j = 0; i < s_len; i++) {
-      // LOG_TRACE("Assessing", atDebugString(str[i]), "vs", atDebugString(substr[j]));
+      // LOG_TRACE("Assessing", debugString(str[i]), "vs", debugString(substr[j]));
       if (str[i] == substr[j]) {
-        // LOG_TRACE("Found match for", atDebugString(substr[j]));
+        // LOG_TRACE("Found match for", debugString(substr[j]));
         char_matches++;
         j++;
         if (char_matches == ss_len) {
@@ -158,7 +165,7 @@ int instancesOf(const char *str, const char *substr) {
           j = 0;
         }
       } else if (char_matches > 0) {
-        // LOG_TRACE("Mismatch for", atDebugString(substr[j]), "vs", atDebugString(str[i]));
+        // LOG_TRACE("Mismatch for", debugString(substr[j]), "vs", debugString(str[i]));
         char_matches = 0;
         i--;
         j = 0;
@@ -268,8 +275,8 @@ void replace(char *str, const char *old_substr, const char *new_substr,
   if (strcmp(old_substr, new_substr) == 0)
     return;
   int replacements = instancesOf((const char*)str, old_substr);
-  LOG_TRACE("Found", replacements, "instances of", atDebugString(old_substr),
-            "to replace with", atDebugString(new_substr));
+  LOG_TRACE("Found", replacements, "instances of", debugString(old_substr),
+            "to replace with", debugString(new_substr));
   if (replacements > 0) {
     size_t new_len = strlen(str) + (replacements *
                      (strlen(new_substr) - strlen(old_substr)));
@@ -284,14 +291,14 @@ void replace(char *str, const char *old_substr, const char *new_substr,
     while (includes((const char*)p_old, old_substr)) {
       replacement_count++;
       size_t idx = indexOf(p_old, old_substr);
-      LOG_TRACE("Found", atDebugString(old_substr), "in", atDebugString(p_old),
+      LOG_TRACE("Found", debugString(old_substr), "in", debugString(p_old),
                 "at index", idx);
       for (size_t i = 0; i < idx; i++) {
-        // LOG_TRACE("Adding", atDebugString(*p_old), "to vector");
+        // LOG_TRACE("Adding", debugString(*p_old), "to vector");
         tmp.push_back(*p_old++);
       }
       for (size_t i = 0; i < offset; i++) {
-        // LOG_TRACE("Adding", atDebugString(new_substr[i]), "to vector");
+        // LOG_TRACE("Adding", debugString(new_substr[i]), "to vector");
         tmp.push_back(new_substr[i]);
       }
       p_old += strlen(old_substr);
@@ -300,12 +307,12 @@ void replace(char *str, const char *old_substr, const char *new_substr,
     }
     size_t remaining_chars = strlen(p_old);
     for (size_t i = 0; i < remaining_chars; i++) {
-      // LOG_TRACE("Adding", atDebugString(*p_old), "to vector");
+      // LOG_TRACE("Adding", debugString(*p_old), "to vector");
       tmp.push_back(*p_old++);
     }
     memset(str, 0, buffer_size);
     strncpy(str, tmp.data(), tmp.size());
-    LOG_TRACE("Replaced", replacement_count, "- result:", atDebugString(str));
+    LOG_TRACE("Replaced", replacement_count, "- result:", debugString(str));
   }
 }
 
@@ -326,7 +333,7 @@ static bool isWhitespace(const char c) {
 void trim(char *str, size_t buffer_length) {
   if (strlen(str) == 0)
     return;
-  LOG_TRACE("Trimming", atDebugString(str));
+  LOG_TRACE("Trimming", debugString(str));
   char* s = str;
   size_t old_len = strlen(s);
   size_t leading = 0;
@@ -362,7 +369,7 @@ void trim(char *str, size_t buffer_length) {
       PRINTLN("Input buffer too small!");
     }
   }
-  LOG_TRACE("Result:", atDebugString(str));
+  LOG_TRACE("Result:", debugString(str));
 }
 
 // TODO: possible buffer problem for large strings
@@ -571,3 +578,5 @@ size_t base64BufferLength(const char *b64_str) {
 size_t base64StringLength(size_t buffersize) {
   return ((4 * buffersize / 3) + 3) & ~3;
 }
+
+}   // namespace at

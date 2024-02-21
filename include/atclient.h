@@ -1,22 +1,24 @@
 /**
- * @file atcommandbuffer.h
+ * @file atclient.h
  * @author G.Bruce-Payne (gbrucepayne@hotmail.com)
- * @brief Buffer for AT command/response processing
+ * @brief Client for AT command/response processing
  * @version 0.1
  * @date 2024-02-13
  * 
  */
-#ifndef AT_COMMAND_BUFFER_H
-#define AT_COMMAND_BUFFER_H
+#ifndef AT_CLIENT_H
+#define AT_CLIENT_H
 
 #include <Arduino.h>
 #include <vector>
-#include "atdebuglog.h"
+#include "atdebug.h"
 #include "atstringutils.h"
 #include "crcxmodem.h"
 #if defined(__AVR__)
 // progmem?
 #endif
+
+namespace at {
 
 #ifndef AT_BAUDRATE
 #define AT_BAUDRATE 9600
@@ -61,16 +63,16 @@ typedef uint8_t parse_state_t;
 #define PARSE_ERROR 5
 
 /**
- * @brief A buffer class for managing AT command responses
+ * @brief A class for managing client AT command responses
  * 
  */
-class AtCommandBuffer {
+class AtClient {
   private:
     bool echo = true;
     bool verbose = true;
     bool quiet = false;
     bool crc = false;
-    char v1PreSuffix[3];
+    char terminator[3];
     char vres_ok[7];
     char vres_err[10];
     char res_ok[3];
@@ -101,8 +103,8 @@ class AtCommandBuffer {
      * 
      * @param serial The Stream reference associated with the serial port
      */
-    AtCommandBuffer(Stream &serial) : serial(serial) {
-      snprintf(v1PreSuffix, 3, "%c%c", AT_CR, AT_LF);
+    AtClient(Stream &serial) : serial(serial) {
+      snprintf(terminator, 3, "%c%c", AT_CR, AT_LF);
       snprintf(vres_ok, 7, "%c%cOK%c%c", AT_CR, AT_LF, AT_CR, AT_LF);
       snprintf(vres_err, 10, "%c%cERROR%c%c", AT_CR, AT_LF, AT_CR, AT_LF);
       snprintf(res_ok, 3, "0%c", AT_CR);
@@ -180,6 +182,6 @@ class AtCommandBuffer {
 
 };
 
-// void atDebugRxBuffer(bool start = true);
+}   // namespace at
 
-#endif
+#endif   // AT_CLIENT_H

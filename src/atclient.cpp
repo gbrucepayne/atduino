@@ -1,17 +1,15 @@
-#include <atcommandbuffer.h>
+#include <atclient.h>
+
+namespace at {
 
 static const char rx_debug_tag[] = "[DEBUG][RX] <<<";
 static const char tx_debug_tag[] = "[DEBUG][TX] >>>";
-// static const char vres_ok[] = "\r\nOK\r\n";
-// static const char vres_err[] = "\r\nERROR\r\n";
-// static const char res_ok[] = "0\r";
-// static const char res_err[] = "4\r";
 
 /**
  * @brief Add a preamble to raw character debug or newline for other debug
  * @param raw Adds a preamble for raw character logging
 */
-void AtCommandBuffer::toggleRaw(bool raw) {
+void AtClient::toggleRaw(bool raw) {
   #ifdef ARDUINO
   if (LOG_GET_LEVEL() > DebugLogLevel::LVL_INFO) {
     if (raw && !debug_raw) {
@@ -25,7 +23,7 @@ void AtCommandBuffer::toggleRaw(bool raw) {
   #endif
 }
 
-bool AtCommandBuffer::isRxBufferFull() {
+bool AtClient::isRxBufferFull() {
   #if defined(__AVR__) || defined(ESP8266)
   return strlen(res_buffer_P) == rx_buffer_size;
   #else
@@ -33,7 +31,7 @@ bool AtCommandBuffer::isRxBufferFull() {
   #endif
 }
 
-void AtCommandBuffer::clearRxBuffer() {
+void AtClient::clearRxBuffer() {
   #if defined(__AVR__) || defined(ESP8266)
   memset(res_buffer_P, 0, rx_buffer_size);
   #else
@@ -41,24 +39,24 @@ void AtCommandBuffer::clearRxBuffer() {
   #endif
 }
 
-void AtCommandBuffer::clearPendingCommand() {
+void AtClient::clearPendingCommand() {
   memset(pending_command, 0, AT_TXBUFFER_MAX_SIZE);
 }
 
-bool AtCommandBuffer::setPendingCommand(const char *at_command) {
+bool AtClient::setPendingCommand(const char *at_command) {
   if (strlen(at_command) > AT_TXBUFFER_MAX_SIZE)
     return false;   // invalid_argument("command too large");
   strcpy(pending_command, at_command);
   return true;
 }
 
-String AtCommandBuffer::sgetResponse(const char* prefix) {
+String AtClient::sgetResponse(const char* prefix) {
   String temp;
   getResponse(temp, prefix);
   return temp;
 }
 
-void AtCommandBuffer::getResponse(String& response, const char* prefix) {
+void AtClient::getResponse(String& response, const char* prefix) {
   cleanResponse(prefix);
   #if defined(__AVR__)
   response = String(res_buffer_P);   // extract to SRAM first?
@@ -68,7 +66,7 @@ void AtCommandBuffer::getResponse(String& response, const char* prefix) {
   response_ready = false;
 }
 
-void AtCommandBuffer::getResponse(char* response, const char* prefix,
+void AtClient::getResponse(char* response, const char* prefix,
                                   size_t buffersize) {
   cleanResponse(prefix);
   #if defined(__AVR__)
@@ -79,7 +77,7 @@ void AtCommandBuffer::getResponse(char* response, const char* prefix,
   response_ready = false;
 }
 
-char* AtCommandBuffer::responsePtr() {
+char* AtClient::responsePtr() {
   #if defined(__AVR__)
   return &res_buffer_P[0];   // may need to extract to SRAM first?
   #else  
@@ -87,11 +85,11 @@ char* AtCommandBuffer::responsePtr() {
   #endif
 }
 
-char* AtCommandBuffer::commandPtr() {
+char* AtClient::commandPtr() {
   return &pending_command[0];
 }
 
-char AtCommandBuffer::lastCharRead(size_t n) {
+char AtClient::lastCharRead(size_t n) {
   if (n <= 0)
     return -1;
   #if defined(__AVR__) || defined(ESP8266)
@@ -102,27 +100,41 @@ char AtCommandBuffer::lastCharRead(size_t n) {
 }
 
 // If any data is on the serial port read until a match of read_until
-bool AtCommandBuffer::checkUrc(const char* read_until, time_t timeout) {
-  if (strlen(pending_command) > 0 || this->reentrant || serial.available() == 0)
+bool AtClient::checkUrc(const char* read_until, time_t timeout) {
+  if (strlen(pending_command) > 0 || reentrant || serial.available() == 0) {
+    if (strlen(pending_command) > 0) LOG_TRACE("AT command pending");
+    if (reentrant) LOG_TRACE("reentrant");
+    // if (serial.available() == 0) LOG_TRACE("No data");
     return false;
-  this->reentrant = true;
+  }
+  reentrant = true;
   if (read_until == nullptr)
-    read_until = v1PreSuffix;
+    read_until = terminator;
+  LOG_DEBUG("Processing URC until", debugString(read_until));
+  toggleRaw(true);
   clearRxBuffer();
-  time_t start = millis();
-  while (millis() - start < timeout) {
+  response_ready = false;
+  for (time_t start = millis(); millis() - start < timeout;) {
     readSerialChar(false, true);
     if (strlen(responsePtr()) > strlen(read_until) &&
-        endsWith(responsePtr(), read_until))
+        endsWith(responsePtr(), read_until)) {
+      toggleRaw(false);
+      LOG_TRACE("Found terminator");
+      response_ready = true;
       break;
+    }
   }
+  toggleRaw(false);
+  if (!response_ready)
+    LOG_WARN("Timed out waiting for terminator");
   response_ready = true;
-  if (cb_ptr != nullptr) cb_ptr(AT_URC);
-  this->reentrant = false;
+  if (cb_ptr != nullptr)
+    cb_ptr(AT_URC);
+  reentrant = false;
   return true;
 }
 
-bool AtCommandBuffer::sendAtCommand(const char *at_command, uint16_t timeout) {
+bool AtClient::sendAtCommand(const char *at_command, uint16_t timeout) {
   if (strlen(pending_command) > 0 || this->reentrant || serial.available() > 0)
     return false;
   this->reentrant = true;
@@ -137,7 +149,7 @@ bool AtCommandBuffer::sendAtCommand(const char *at_command, uint16_t timeout) {
   pending_command[strlen(pending_command)] = '\r';
   #ifdef ARDUINO
   if (LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG)
-    PRINTLN(tx_debug_tag, atDebugString(pending_command));
+    PRINTLN(tx_debug_tag, debugString(pending_command));
   #endif
   serial.print(pending_command);
   serial.flush();
@@ -147,19 +159,19 @@ bool AtCommandBuffer::sendAtCommand(const char *at_command, uint16_t timeout) {
   return readAtResponse(timeout);
 }
 
-bool AtCommandBuffer::sendAtCommand(const String &at_command, uint16_t timeout) {
+bool AtClient::sendAtCommand(const String &at_command, uint16_t timeout) {
   return sendAtCommand(at_command.c_str(), timeout);
 }
 
-bool AtCommandBuffer::readAtResponse(uint16_t timeout) {
+bool AtClient::readAtResponse(uint16_t timeout) {
   if (this->reentrant)
     return false;
   this->reentrant = true;
   cmd_parsing = echo ? PARSE_ECHO : PARSE_RESPONSE;
   uint16_t countdown = (uint16_t)(timeout / 1000);
-  size_t tick = LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG ? 1 : 0;
+  time_t tick = LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG ? 1 : 0;
   LOG_TRACE("[", millis(), "] Timeout:", timeout, "ms; Countdown:", countdown, "s");
-  for (size_t start = millis(); millis() - start < timeout;) {
+  for (time_t start = millis(); millis() - start < timeout;) {
     while (serial.available() > 0 && cmd_parsing < PARSE_OK) {
       toggleRaw(true);
       readSerialChar(false, true);
@@ -167,7 +179,7 @@ bool AtCommandBuffer::readAtResponse(uint16_t timeout) {
       if (last == AT_LF) {
         // unsolicited, V0 info-suffix/multiline sep, V1 prefix/multiline/suffix
         char* res = responsePtr();
-        if (cmd_parsing == PARSE_ECHO || !startsWith(res, v1PreSuffix)) {
+        if (cmd_parsing == PARSE_ECHO || !startsWith(res, terminator)) {
           // check if V0 info suffix or multiline separator
           if (lastCharRead(2) != AT_CR) {
             toggleRaw(false);
@@ -268,7 +280,7 @@ bool AtCommandBuffer::readAtResponse(uint16_t timeout) {
   return response_ready;
 }
 
-parse_state_t AtCommandBuffer::parsingOk() {
+parse_state_t AtClient::parsingOk() {
   parse_state_t next_state = PARSE_OK;
   cmd_result_ok = true;
   LOG_DEBUG("Result OK");
@@ -296,7 +308,7 @@ parse_state_t AtCommandBuffer::parsingOk() {
   return next_state;
 }
 
-parse_state_t AtCommandBuffer::parsingError() {
+parse_state_t AtClient::parsingError() {
   parse_state_t next_state = PARSE_ERROR;
   LOG_WARN("Result ERROR");
   delay(CHAR_DELAY);
@@ -307,11 +319,11 @@ parse_state_t AtCommandBuffer::parsingError() {
   return next_state;
 }
 
-parse_state_t AtCommandBuffer::parsingShort(uint8_t current) {
+parse_state_t AtClient::parsingShort(uint8_t current) {
   parse_state_t next_state = current;
   LOG_DEBUG("Checking candidate short response code");
   char* res = responsePtr();
-  if (!startsWith(res, v1PreSuffix)) {
+  if (!startsWith(res, terminator)) {
     if (this->verbose) {
       LOG_WARN("Short response code found - clearing verbose flag");
       this->verbose = false;
@@ -325,15 +337,15 @@ parse_state_t AtCommandBuffer::parsingShort(uint8_t current) {
   return next_state;
 }
 
-void AtCommandBuffer::cleanResponse(const char *prefix) {
+void AtClient::cleanResponse(const char *prefix) {
   if (crc) {
     LOG_TRACE("Removing CRC");
-    unsigned short int crc_length = 1 + CRC_LEN + strlen(v1PreSuffix);
+    unsigned short int crc_length = 1 + CRC_LEN + strlen(terminator);
     size_t crc_offset = strlen(responsePtr()) - crc_length;
     remove(responsePtr(), crc_offset, crc_length);
   }
   const char* to_remove = this->verbose ? vres_ok : res_ok;
-  LOG_TRACE("Removing result code:", to_remove);
+  LOG_TRACE("Removing result code:", debugString(to_remove));
   replace(responsePtr(), to_remove, "", rx_buffer_size);
   if (prefix != nullptr) {
     LOG_TRACE("Removing prefix:", prefix);
@@ -342,16 +354,16 @@ void AtCommandBuffer::cleanResponse(const char *prefix) {
   trim(responsePtr(), rx_buffer_size);
   replace(responsePtr(), "\r\n", "\n", rx_buffer_size);
   replace(responsePtr(), "\n\n", "\n", rx_buffer_size);
-  LOG_TRACE("Trimmed and consolidated line feeds:", responsePtr());
+  LOG_TRACE("Trimmed and consolidated line feeds:", debugString(responsePtr()));
 }
 
-bool AtCommandBuffer::setResponseCallback(void (&callback)(at_error_t)) {
+bool AtClient::setResponseCallback(void (&callback)(at_error_t)) {
   // TODO validate callback?
   cb_ptr = callback;
   return true;
 }
 
-bool AtCommandBuffer::readSerialChar(bool ignore_unprintable, bool is_locked) {
+bool AtClient::readSerialChar(bool ignore_unprintable, bool is_locked) {
   bool success = false;
   if (!this->reentrant || is_locked) {
     if (!is_locked)
@@ -359,7 +371,7 @@ bool AtCommandBuffer::readSerialChar(bool ignore_unprintable, bool is_locked) {
     if (serial.available() > 0) {
       if (!isRxBufferFull()) {
         char c = serial.read();
-        if (!atPrintableChar(c, LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG)) {
+        if (!printableChar(c, LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG)) {
           if (ignore_unprintable) {
             success = true;
           }
@@ -378,3 +390,5 @@ bool AtCommandBuffer::readSerialChar(bool ignore_unprintable, bool is_locked) {
     this->reentrant = false;
   return success;
 }
+
+}   // namespace at

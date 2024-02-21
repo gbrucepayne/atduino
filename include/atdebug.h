@@ -1,5 +1,5 @@
-#ifndef ATDEBUGLOG_H
-#define ATDEBUGLOG_H
+#ifndef AT_DEBUG_H
+#define AT_DEBUG_H
 
 #ifdef ARDUINO
   #include <DebugLog.h>
@@ -14,4 +14,4 @@
   #define LOG_GET_LEVEL()
 #endif
 
-#endif
+#endif   // AT_DEBUG_H

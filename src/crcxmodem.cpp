@@ -6,6 +6,8 @@
  */
 #include "crcxmodem.h"
 
+namespace at {
+
 static const char* HEX_CHARSET = "0123456789ABCDEF";
 
 /**
@@ -118,7 +120,7 @@ bool applyCrc(String &at_command, const char sep) {
 }
 
 bool validateCrc(const char *response, const char sep) {
-  LOG_DEBUG("Validating CRC for", atDebugString(response));
+  LOG_DEBUG("Validating CRC for", debugString(response));
   char res[strlen(response)];
   char res_crc[1 + CRC_LEN];
   size_t crc_start = sepPos_(response);
@@ -130,3 +132,5 @@ bool validateCrc(const char *response, const char sep) {
 bool validateCrc(const String& response, const char sep) {
   return validateCrc(response.c_str(), sep);
 }
+
+}   // namespace at

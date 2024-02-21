@@ -8,8 +8,10 @@
 #define CRCXMODEM_H
 
 #include <Arduino.h>
-#include "atdebuglog.h"
+#include "atdebug.h"
 #include "atstringutils.h"
+
+namespace at {
 
 #define POLYNOMIAL 0x1021
 #define PRESET 0
@@ -35,5 +37,7 @@ bool applyCrc(String& at_command, const char sep = CRC_SEP);
  */
 bool validateCrc(const char* response, const char sep = CRC_SEP);
 bool validateCrc(const String& response, const char sep = CRC_SEP);
+
+}   // namespace at
 
 #endif
