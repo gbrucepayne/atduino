@@ -1,22 +1,22 @@
 {
     "name": "atduino",
     "version": "1.0.0",
-    "description": "Interfaces to a modem using V.25 AT commands",
+    "description": "Interfaces to or masquerades as a modem using V.25 AT commands",
     "keywords": "at, at command, modem",
     "license": "MIT",
-    "frameworks": "Arduino",
-    "platforms": "esp32",
+    "frameworks": "arduino",
+    "platforms": ["espressif32"],
     "dependencies": {
         "hideakitai/DebugLog": "^0.6.6"
     },
     "examples": [
         {
-            "name": "Basic",
-            "base": "examples/basic",
+            "name": "Client",
+            "base": "examples/client",
             "files": [
                 "main.cpp",
-                "include/atcommandbuffer.h",
-                "src/atcommandbuffer.cpp"
+                "include/atclient.h",
+                "src/atclient.cpp"
             ]
         }
     ]
