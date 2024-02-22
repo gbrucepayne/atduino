@@ -10,6 +10,8 @@
 #define AT_RXBUFFER_MAX_SIZE 16384  // B64 10000 byte payload = 13336 + wrapper
 #define AT_TXBUFFER_MAX_SIZE 8192   // B64 6400 byte payload = 8536 + wrapper
 
+#define AT_SERVER_BUFFER_MAX_SIZE 256
+
 #define AT_CR '\r'   // line terminator (default \r)
 #define AT_LF '\n'   // response line formatter (default \n)
 // Error codes for AT communications

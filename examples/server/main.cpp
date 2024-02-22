@@ -59,11 +59,11 @@ void setup() {
   Serial.println("Added hello");
   host.addCmd(&quit_cmd);
   Serial.println("Added quit");
+  host.begin();
+  Serial.println("Listening...");
 }
 
 void loop() {
-  Serial.println("This example is broken - don't use");
-  delay(3000);
-  // if (!running || host.readSerial() != 0)
-  //   exit(0);
+  if (!running || host.readSerial() != 0)
+    exit(0);
 }

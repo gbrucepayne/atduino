@@ -39,7 +39,8 @@ class AtServer {
     char vres_err[10];
     char res_ok[3];
     char res_err[3];
-    char serial_command_buffer[128];
+    char serial_command_buffer[AT_SERVER_BUFFER_MAX_SIZE];
+    bool initialized = false;
     at_error_t last_error_code = 0;
     write_function w_ptr;
     read_function r_ptr;

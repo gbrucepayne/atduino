@@ -14,7 +14,10 @@ bool AtServer::addCmd(cat_command* cmd) {
 }
 
 bool AtServer::begin() {
-  // TODO: check if commands exist
+  if (cmds.size() == 0) {
+    LOG_ERROR("No commands defined");
+    return false;
+  }
   // cmd_group = {
   cmd_group.cmd = &cmds[0],
   cmd_group.cmd_num = cmds.size(),
@@ -27,10 +30,13 @@ bool AtServer::begin() {
   desc.buf_size = sizeof(working_buf),
   // };
   cat_init(&cat, &desc, &iface, NULL);
-  return true;
+  initialized = true;
+  return initialized;
 }
 
 int AtServer::readSerial() {
+  if (!initialized)
+    return -1;
   return int(cat_service(&cat));
 }
 
