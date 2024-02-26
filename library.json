@@ -22,6 +22,15 @@
                 "include/atclient.h",
                 "src/atclient.cpp"
             ]
+        },
+        {
+            "name": "Server",
+            "base": "examples/server",
+            "files": [
+                "main.cpp",
+                "include/atserver.h",
+                "src/atserver.cpp"
+            ]
         }
     ]
 }
