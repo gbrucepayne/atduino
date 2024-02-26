@@ -1,5 +1,5 @@
 /**
- * @brief Broken example - not sure yet why it is crashing on readSerial
+ * @brief Illustrates use of the AT server with custom commands
 */
 
 #include <Arduino.h>
