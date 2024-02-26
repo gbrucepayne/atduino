@@ -8,45 +8,40 @@
 #define MicroSerial Serial2
 #define MICRO_BAUD 9600
 
-static int serialWrite(char c) {
-  MicroSerial.write(c);
-  return 1;
-}
-
-static int serialRead(char* c) {
-  char r = MicroSerial.read();
-  if (r > -1) {
-    c[0] = r;
-    return 1;
-  }
-  return 0;
-}
-
 bool running = false;
 
-at::AtServer host(MicroSerial, serialWrite, serialRead);
+at::AtServer host(MicroSerial);
 
-static cat_return_state runHello(const struct cat_command *cmd) {
+void readHello() {
+  char terminator[3];
+  host.getTerminator(terminator);
+  char outbuffer[100];
+  sprintf(outbuffer, "%sHELLO!%s", terminator, terminator);
+  MicroSerial.write(outbuffer);
+}
+
+void runHello() {
   Serial.println("Running hello");
-  return CAT_RETURN_STATE_OK;
 }
 
-static cat_command hello_cmd = {
-  .name = "+HELLO",
-  .description = "A simple demo",
-  .run = runHello,
-};
-
-static cat_return_state runQuit(const struct cat_command *cmd) {
-  Serial.println("Qutting demo");
-  return CAT_RETURN_STATE_OK;
+void testHello() {
+  char terminator[3];
+  host.getTerminator(terminator);
+  char outbuffer[100];
+  sprintf(outbuffer, "%s(name)%s", terminator, terminator);
+  MicroSerial.write(outbuffer);
 }
 
-static cat_command quit_cmd = {
-  .name = "+QUIT",
-  .description = "Quit the demo",
-  .run = runQuit,
-};
+at_error_t writeHello(const char* params) {
+  char terminator[3];
+  host.getTerminator(terminator);
+  char outbuffer[100];
+  sprintf(outbuffer, "%sHello, %s!%s", terminator, params, terminator);
+  MicroSerial.write(outbuffer);
+  return AT_OK;
+}
+
+static at::AtCommand hello_cmd = {"+HELLO", readHello, runHello, testHello, writeHello};
 
 void setup() {
   LOG_SET_LEVEL(DebugLogLevel::LVL_TRACE);
@@ -55,15 +50,14 @@ void setup() {
   delay(3000);
   Serial.println("Starting...");
   running = true;
-  host.addCmd(&hello_cmd);
+  host.addCommand(&hello_cmd);
   Serial.println("Added hello");
-  host.addCmd(&quit_cmd);
-  Serial.println("Added quit");
-  host.begin();
   Serial.println("Listening...");
+  MicroSerial.write("\r\nRDY\r\n");
 }
 
 void loop() {
-  if (!running || host.readSerial() != 0)
-    exit(0);
+  int result = host.readSerial();
+  if (result != 0)
+    LOG_WARN("Issue reading serial:", result);
 }

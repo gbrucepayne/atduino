@@ -40,10 +40,10 @@ static bool initializeCrcTable_() {
     // Unclear why this fails at i=255
     for (uint8_t i = 0; i < 255; i++) {
       crcxmodem_table[i] = initialCrc_(i);
-      LOG_TRACE("CRC table [", i, "]=", crcxmodem_table[i]);
+      // LOG_TRACE("CRC table [", i, "]=", crcxmodem_table[i]);
     }
     crcxmodem_table[255] = initialCrc_(255);
-    LOG_TRACE("CRC table [255]=", crcxmodem_table[255]);
+    // LOG_TRACE("CRC table [255]=", crcxmodem_table[255]);
     crcxmodem_table_is_initialized = true;
   } else {
     LOG_TRACE("CRC table already initialized");
@@ -121,9 +121,12 @@ bool applyCrc(String &at_command, const char sep) {
 
 bool validateCrc(const char *response, const char sep) {
   LOG_DEBUG("Validating CRC for", debugString(response));
-  char res[strlen(response)];
-  char res_crc[1 + CRC_LEN];
+  size_t res_len = strlen(response);
   size_t crc_start = sepPos_(response);
+  if (crc_start == res_len)
+    return false;   // No CRC found
+  char res[res_len];
+  char res_crc[1 + CRC_LEN];
   substring(res, response, 0, crc_start);
   substring(res_crc, response, crc_start + 1, crc_start + 1 + CRC_LEN);
   return calculateCrc_(res) == hexToInt(res_crc);

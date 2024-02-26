@@ -15,7 +15,9 @@ namespace at {
 bool printableChar(const char c, bool print) {
   bool printable = true;
   char to_print[8] = "";
-  if (c == 10) {
+  if (c == 8) {
+    snprintf(to_print, 8, "<bs>");
+  } else if (c == 10) {
     snprintf(to_print, 8, "<lf>");
   } else if (c == 13) {
     snprintf(to_print, 8, "<cr>");
@@ -49,12 +51,14 @@ String debugString(const String &str) {
   size_t str_len = str.length();
   for (size_t i = 0; i < str_len; i++) {
     char c = str[i];
-    if (c == '\r') {
+    if (c == '\b') {
+      debug_string += "<bs>";
+    } else if (c == '\r') {
       debug_string += "<cr>";
     } else if (c == '\n') {
       debug_string += "<lf>";
     } else if (c < 32 || c > 125) {
-      debug_string += "[ " + String((int)c) + " ]";
+      debug_string += "[" + String((int)c) + "]";
     } else {
       debug_string += c;
     }
@@ -173,6 +177,12 @@ int instancesOf(const char *str, const char *substr) {
     }
   }
   return instances;
+}
+
+int instancesOf(const char* str, const char c) {
+  char substr[2] = "";
+  substr[0] = c;
+  return instancesOf(str, (const char*)substr);
 }
 
 int instancesOf(const String &str, const String &substr) {

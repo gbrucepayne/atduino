@@ -7,18 +7,22 @@
 #define CHAR_DELAY 10   // milliseconds 
 #define AT_TIMEOUT_MS 1000
 
-#define AT_RXBUFFER_MAX_SIZE 16384  // B64 10000 byte payload = 13336 + wrapper
-#define AT_TXBUFFER_MAX_SIZE 8192   // B64 6400 byte payload = 8536 + wrapper
+#define AT_CLIENT_RX_BUFFERSIZE 32768
+#define AT_CLIENT_TX_BUFFERSIZE 32768
 
-#define AT_SERVER_BUFFER_MAX_SIZE 256
+#define AT_SERVER_RX_BUFFERSIZE 256
 
-#define AT_CR '\r'   // line terminator (default \r)
-#define AT_LF '\n'   // response line formatter (default \n)
+#define AT_CR '\r'   // line terminator (default 0x0C)
+#define AT_LF '\n'   // response line formatter (default 0x0A)
+#define AT_BS '\b'   // backspace (default 0x08)
+#define AT_SEP ';'   // v.25 mandated command separator
+
 // Error codes for AT communications
 typedef unsigned short at_error_t;
 #define AT_OK 0
 #define AT_URC 1
 #define AT_ERR_GENERIC 4
+// Orbcomm modem error codes
 #define AT_ERR_CRC 100
 #define AT_ERR_CMD_UNKNOWN 101
 #define AT_ERR_CMD_INVALID 102
@@ -44,5 +48,6 @@ typedef unsigned short parse_state_t;
 #define PARSE_CRC 3
 #define PARSE_OK 4
 #define PARSE_ERROR 5
+#define PARSE_COMMAND 6
 
 #endif   // AT_CONSTANTS_H

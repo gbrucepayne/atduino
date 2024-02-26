@@ -85,6 +85,7 @@ int indexOf(const char* str, const char c);
  * @return int The count of substring instances in string
  */
 int instancesOf(const char* str, const char* substr);
+int instancesOf(const char* str, const char c);
 int instancesOf(const String& str, const String& substr);
 
 /**

@@ -40,11 +40,11 @@ void AtClient::clearRxBuffer() {
 }
 
 void AtClient::clearPendingCommand() {
-  memset(pending_command, 0, AT_TXBUFFER_MAX_SIZE);
+  memset(pending_command, 0, AT_CLIENT_TX_BUFFERSIZE);
 }
 
 bool AtClient::setPendingCommand(const char *at_command) {
-  if (strlen(at_command) > AT_TXBUFFER_MAX_SIZE)
+  if (strlen(at_command) > AT_CLIENT_TX_BUFFERSIZE)
     return false;   // invalid_argument("command too large");
   strcpy(pending_command, at_command);
   return true;
@@ -100,22 +100,22 @@ char AtClient::lastCharRead(size_t n) {
 }
 
 // If any data is on the serial port read until a match of read_until
-bool AtClient::checkUrc(const char* read_until, time_t timeout) {
-  if (strlen(pending_command) > 0 || reentrant || serial.available() == 0) {
+bool AtClient::checkUrc(const char* read_until, time_t timeout_ms) {
+  if (strlen(pending_command) > 0 || busy || serial.available() == 0) {
     if (strlen(pending_command) > 0) LOG_TRACE("AT command pending");
-    if (reentrant) LOG_TRACE("reentrant");
+    if (busy) LOG_TRACE("busy");
     // if (serial.available() == 0) LOG_TRACE("No data");
     return false;
   }
-  reentrant = true;
+  busy = true;
   if (read_until == nullptr)
     read_until = terminator;
   LOG_DEBUG("Processing URC until", debugString(read_until));
   toggleRaw(true);
   clearRxBuffer();
   response_ready = false;
-  for (time_t start = millis(); millis() - start < timeout;) {
-    readSerialChar(false, true);
+  for (time_t start = millis(); millis() - start < timeout_ms;) {
+    readSerialChar();
     if (strlen(responsePtr()) > strlen(read_until) &&
         endsWith(responsePtr(), read_until)) {
       toggleRaw(false);
@@ -127,24 +127,21 @@ bool AtClient::checkUrc(const char* read_until, time_t timeout) {
   toggleRaw(false);
   if (!response_ready)
     LOG_WARN("Timed out waiting for terminator");
-  response_ready = true;
-  if (cb_ptr != nullptr)
-    cb_ptr(AT_URC);
-  reentrant = false;
+  busy = false;
   return true;
 }
 
-bool AtClient::sendAtCommand(const char *at_command, uint16_t timeout) {
-  if (strlen(pending_command) > 0 || this->reentrant || serial.available() > 0)
+bool AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) {
+  if (strlen(pending_command) > 0 || busy || serial.available() > 0)
     return false;
-  this->reentrant = true;
+  busy = true;
   response_ready = false;
   clearPendingCommand();
   clearRxBuffer();
   serial.flush();   // Wait for any prior outgoing data to complete
   setPendingCommand(at_command);
   if (crc) {
-    applyCrc(pending_command, AT_TXBUFFER_MAX_SIZE);
+    applyCrc(pending_command, AT_CLIENT_TX_BUFFERSIZE);
   }
   pending_command[strlen(pending_command)] = '\r';
   #ifdef ARDUINO
@@ -153,28 +150,26 @@ bool AtClient::sendAtCommand(const char *at_command, uint16_t timeout) {
   #endif
   serial.print(pending_command);
   serial.flush();
-  // cmd_parsing = echo ? PARSE_ECHO : PARSE_RESPONSE;
-  this->reentrant = false;
-  // return true;
-  return readAtResponse(timeout);
+  busy = false;
+  return readAtResponse(timeout_ms);
 }
 
-bool AtClient::sendAtCommand(const String &at_command, uint16_t timeout) {
-  return sendAtCommand(at_command.c_str(), timeout);
+bool AtClient::sendAtCommand(const String &at_command, uint16_t timeout_ms) {
+  return sendAtCommand(at_command.c_str(), timeout_ms);
 }
 
-bool AtClient::readAtResponse(uint16_t timeout) {
-  if (this->reentrant)
+bool AtClient::readAtResponse(uint16_t timeout_ms) {
+  if (busy)
     return false;
-  this->reentrant = true;
+  busy = true;
   cmd_parsing = echo ? PARSE_ECHO : PARSE_RESPONSE;
-  uint16_t countdown = (uint16_t)(timeout / 1000);
+  uint16_t countdown = (uint16_t)(timeout_ms / 1000);
   time_t tick = LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG ? 1 : 0;
-  LOG_TRACE("[", millis(), "] Timeout:", timeout, "ms; Countdown:", countdown, "s");
-  for (time_t start = millis(); millis() - start < timeout;) {
+  LOG_TRACE("[", millis(), "] Timeout:", timeout_ms, "ms; Countdown:", countdown, "s");
+  for (time_t start = millis(); millis() - start < timeout_ms;) {
     while (serial.available() > 0 && cmd_parsing < PARSE_OK) {
       toggleRaw(true);
-      readSerialChar(false, true);
+      readSerialChar();
       char last = lastCharRead();
       if (last == AT_LF) {
         // unsolicited, V0 info-suffix/multiline sep, V1 prefix/multiline/suffix
@@ -275,8 +270,7 @@ bool AtClient::readAtResponse(uint16_t timeout) {
     cmd_error = AT_OK;
   }
   clearPendingCommand();
-  if (cb_ptr != nullptr) cb_ptr(cmd_error);
-  this->reentrant = false;
+  busy = false;
   return response_ready;
 }
 
@@ -357,37 +351,25 @@ void AtClient::cleanResponse(const char *prefix) {
   LOG_TRACE("Trimmed and consolidated line feeds:", debugString(responsePtr()));
 }
 
-bool AtClient::setResponseCallback(void (&callback)(at_error_t)) {
-  // TODO validate callback?
-  cb_ptr = callback;
-  return true;
-}
-
-bool AtClient::readSerialChar(bool ignore_unprintable, bool is_locked) {
+bool AtClient::readSerialChar(bool ignore_unprintable) {
   bool success = false;
-  if (!this->reentrant || is_locked) {
-    if (!is_locked)
-      this->reentrant = true;    
-    if (serial.available() > 0) {
-      if (!isRxBufferFull()) {
-        char c = serial.read();
-        if (!printableChar(c, LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG)) {
-          if (ignore_unprintable) {
-            success = true;
-          }
-        } else {
-          #if defined(__AVR__) || defined(ESP8266)
-          res_buffer_P[strlen(res_buffer_P)] = c;
-          #else
-          res_buffer[(strlen(res_buffer))] = c;
-          #endif
+  if (serial.available() > 0) {
+    if (!isRxBufferFull()) {
+      char c = serial.read();
+      if (!printableChar(c, LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG)) {
+        if (ignore_unprintable) {
           success = true;
         }
+      } else {
+        #if defined(__AVR__) || defined(ESP8266)
+        res_buffer_P[strlen(res_buffer_P)] = c;
+        #else
+        res_buffer[(strlen(res_buffer))] = c;
+        #endif
+        success = true;
       }
     }
   }
-  if (!is_locked)
-    this->reentrant = false;
   return success;
 }
 
