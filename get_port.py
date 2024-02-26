@@ -7,4 +7,4 @@ try:
 except ImportError:
     pass
 
-os.environ['UPLOAD_PORT'] = os.getenv('UPLOAD_PORT', '')
+os.environ['PLATFORMIO_UPLOAD_PORT'] = os.getenv('PLATFORMIO_UPLOAD_PORT', '')
