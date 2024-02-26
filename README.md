@@ -24,21 +24,17 @@ by some modems.
 
 This is the main mode of intended use. The logic flow is as follows:
 
-1. (*Optional*) register a callback for response completion which will receive
-a `at_error_t` integer code indicating success (`AT_OK` = 0) or error (> 0).
-If a callback is not specified, the state of response ready may be polled using
-`responseReady()`.
-
 1. AT commmand, with optional timeout, is submitted by a function call
 `sendAtCommand()` which:
-    * If a prior command is pending (TBD thread-safe) returns `AT_BUSY`;
+    * If a prior command is pending (TBD thread-safe) returns `false`;
     * Clears the last error code;
-    * Clears the receive buffer, putting any residual data in an orphan buffer;
+    * Clears the receive buffer;
     * (Optional) calculates and applies CRC to the command;
     * Applies the command line termination character (default `\r`);
     * Sends the command on serial and waits for all data to be sent;
     * Sets the pending command state;
-    * Starts the response parsing state transitions to listening mode;
+    * Calls an internal response parsing function and returns `true`
+    if successful;
     * If no timeout is specified, the default is 1 second
     (`AT_TIMEOUT_DEFAULT_MS`).
 
@@ -55,7 +51,7 @@ responses are stored in a *get* buffer for retrieval:
     * Clears the pending command state.
 
 3. Retrieval of successful response is done using `getResponse()` or
-`sgetResponse()` with an optional `prefix` (pointer) that can be removed.
+`sgetResponse()` with an optional `prefix` that can be removed.
 All other leading/trailing whitespace is removed, and multi-line responses are
 separated by a single line feed (`\n`). Retrieval clears the *get* buffer.
 
@@ -70,7 +66,6 @@ formatting character have been received or timeout (default 1 second
 `URC_DEFAULT_TIMEOUT`).
 URC data is placed in the *get* buffer and retrieved in the same way as a
 commmand response.
-If a callback is registered, it will be passed `AT_URC` code to prompt retrieval.
 
 ### CRC support
 
@@ -81,7 +76,28 @@ enable/disable command may be configured using `AT_CRC_ENABLE` (default `"CRC"`)
 
 The server concept is to act as a modem/proxy replying to a microcontroller.
 
-The idea is based somewhat on the [ATCommands](https://github.com/yourapiexpert/ATCommands)
-library (but some shortcomings including GPL), and
-[cAT](https://github.com/marcinbor85/cAT/tree/master) but the latter I haven't
-gotten working yet. Many thanks to those developers for some great ideas!
+You register custom commands using `addCommand` with a data structure that
+includes the command `name` and optional callback functions for `read`, `run`,
+`test` and `write` operations.
+
+`Verbose` and `Echo` features are supported using the standard `V` and `E`
+commands defined in the spec.
+
+`CRC` is an optional extended command to support 16-bit checksum validation of
+requests and responses that can be useful in noisy environments.
+
+### Feature considerations
+
+* Repeating a command line using `A/` or `a/` is not supported;
+* No special consideration is given for numeric or string constants, those are
+left to custom handling functions;
+* Concatenation of basic commands deviates from the standard and expects a
+semicolon separator;
+
+### Acknowledgements
+
+The server idea is based somewhat on the
+[ATCommands](https://github.com/yourapiexpert/ATCommands)
+library which had some shortcomings for my cases including GPL, and
+[cAT](https://github.com/marcinbor85/cAT) but reframed for C++.
+Many thanks to those developers for some great ideas!
