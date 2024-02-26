@@ -49,8 +49,6 @@ class AtClient {
     bool debug_raw = false;
     bool isRxBufferFull();
     bool setPendingCommand(const char* at_command);
-    bool readSerialChar(bool ignore_unprintable = true);
-    char lastCharRead(size_t n = 1);
     bool readAtResponse(uint16_t timeout = AT_TIMEOUT_MS);
     parse_state_t parsingOk();
     parse_state_t parsingError();
@@ -131,6 +129,8 @@ class AtClient {
     uint8_t cmd_parsing = 0;
     bool data_mode = false;
     bool data_mode_echo = false;
+    bool readSerialChar(bool ignore_unprintable = true);
+    char lastCharRead(size_t n = 1);
     void toggleRaw(bool raw);
     char* commandPtr();
     char* responsePtr();
