@@ -18,9 +18,6 @@
 
 namespace at {
 
-typedef int(*write_function)(char);
-typedef int(*read_function)(char*);
-
 struct AtCommand {
   char name[32];
   void (*read)(void);
