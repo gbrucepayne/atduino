@@ -15,6 +15,9 @@
 #include "atconstants.h"
 #include "atstringutils.h"
 #include "crcxmodem.h"
+#if defined(__AVR__)
+#include <pgmspace.h>
+#endif
 
 namespace at {
 
