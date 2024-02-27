@@ -361,11 +361,7 @@ bool AtClient::readSerialChar(bool ignore_unprintable) {
           success = true;
         }
       } else {
-        #if defined(__AVR__) || defined(ESP8266)
-        res_buffer_P[strlen(res_buffer_P)] = c;
-        #else
-        res_buffer[(strlen(res_buffer))] = c;
-        #endif
+        responsePtr()[strlen(responsePtr())] = c;
         success = true;
       }
     }
