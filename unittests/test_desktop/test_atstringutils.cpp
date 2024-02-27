@@ -167,3 +167,11 @@ void test_base64Decode() {
   TEST_ASSERT_EQUAL_CHAR_ARRAY(expected, result, 4);
   #endif
 }
+
+void test_getNextParameter() {
+  char test_response[] = "param1,param2,3";
+  char expected[] = "param1";
+  char result[64];
+  at::getNextParameter(result, test_response, 64);
+  TEST_ASSERT_EQUAL_STRING(expected, result);
+}

@@ -24,6 +24,7 @@ int main(int argc, char** argv) {
   RUN_TEST(test_base64BufferLength);
   RUN_TEST(test_base64Decode);
   RUN_TEST(test_indexOf_cstr);
+  RUN_TEST(test_getNextParameter);
 
   /* crcxmodem */
   RUN_TEST(test_applyCrc_cstr);
