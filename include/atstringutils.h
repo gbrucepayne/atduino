@@ -153,6 +153,19 @@ void trim(char* str, size_t buffer_length);
 void trim(String& str);
 
 /**
+ * @brief Get the next parameter from a response string to the next separator
+ * 
+ * @param at_param The buffer to store the result in
+ * @param response The remaining response buffer from the last parameter offset
+ * @param buffersize The parameter buffer size
+ * @param sep The separator (default `,` based on V.25 standard)
+ * @returns -1 if unable to extract the parameter
+ * @returns The offset of the next parameter in the response (`strlen` if none)
+*/
+long getNextParameter(char* at_param, const char* response,
+                      size_t buffersize, const char sep = ',');
+
+/**
  * @brief Convert an unsigned integer to ASCII string
  * 
  * @param n The number to convert
@@ -175,10 +188,10 @@ void intToHex(String& hex_string, int value, uint8_t width);
  * @brief Get the integer value of a hexadecimal string
  * 
  * @param hex_string The hexadecimal string
- * @return int 
+ * @return unsigned long 
  */
-int hexToInt(const char* hex_string);
-int hexToInt(const String& hex_string);
+uint32_t hexToInt(const char* hex_string);
+uint32_t hexToInt(const String& hex_string);
 
 /**
  * @brief Encode a buffer to a Base64 string.

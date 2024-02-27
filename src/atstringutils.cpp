@@ -391,6 +391,19 @@ void trim(String &str) {
   str = String(cstr);
 }
 
+long getNextParameter(char* at_param, const char* response,
+                      size_t buffersize, const char sep) {
+  size_t res_len = strlen(response);
+  int extra_param_count = instancesOf(response, sep);
+  size_t param_end = extra_param_count > 0 ? indexOf(response, sep) : 0;
+  if ((param_end == 0 && strlen(response) > buffersize) ||
+      param_end > buffersize) {
+    return -1;
+  }
+  substring(at_param, response, 0, param_end);
+  return param_end > 0 ? param_end + 1 : strlen(response);
+}
+
 void uintToChar(uint32_t n, char *result, size_t result_size) {
   uint32_t m = n;
   uint32_t digit = 0;
@@ -433,11 +446,11 @@ void intToHex(String &hex_string, int value, uint8_t width) {
   }
 }
 
-int hexToInt(const char *hex_value) {
+uint32_t hexToInt(const char *hex_value) {
   return std::stoul(hex_value, nullptr, 16);
 }
 
-int hexToInt(const String &hex_value) {
+uint32_t hexToInt(const String &hex_value) {
   return std::stoul(hex_value.c_str(), nullptr, 16);
 }
 
