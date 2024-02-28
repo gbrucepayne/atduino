@@ -169,9 +169,17 @@ void test_base64Decode() {
 }
 
 void test_getNextParameter() {
-  char test_response[] = "param1,param2,3";
-  char expected[] = "param1";
+  char test_response[] = "param1,parameter2";
+  char* resptr = test_response;
   char result[64];
-  at::getNextParameter(result, test_response, 64);
-  TEST_ASSERT_EQUAL_STRING(expected, result);
+  long offset = at::getNextParameter(result, resptr, 64);
+  TEST_ASSERT_EQUAL_STRING("param1", result);
+  TEST_ASSERT_EQUAL(7, offset);
+  resptr += offset;
+  offset = at::getNextParameter(result, resptr, 64);
+  TEST_ASSERT_EQUAL_STRING("parameter2", result);
+  TEST_ASSERT_EQUAL(10, offset);
+  resptr += offset;
+  offset = at::getNextParameter(result, resptr, 64);
+  TEST_ASSERT_EQUAL(-1, offset);
 }

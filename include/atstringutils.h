@@ -156,11 +156,11 @@ void trim(String& str);
  * @brief Get the next parameter from a response string to the next separator
  * 
  * @param at_param The buffer to store the result in
- * @param response The remaining response buffer from the last parameter offset
+ * @param response Pointer to the response (or offset) char array
  * @param buffersize The parameter buffer size
  * @param sep The separator (default `,` based on V.25 standard)
  * @returns -1 if unable to extract the parameter
- * @returns The offset of the next parameter in the response (`strlen` if none)
+ * @returns The offset of the next parameter relative to response pointer
 */
 long getNextParameter(char* at_param, const char* response,
                       size_t buffersize, const char sep = ',');
