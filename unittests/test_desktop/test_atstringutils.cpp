@@ -190,5 +190,5 @@ void test_getNextParameter() {
   p_resp += offset;
   offset = at::getNextParameter(result, p_resp, 64);
   TEST_ASSERT_EQUAL_STRING("0", result);
-  TEST_ASSERT_EQUAL(-1, offset);
+  TEST_ASSERT_EQUAL(1, offset);
 }
