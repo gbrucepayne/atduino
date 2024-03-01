@@ -38,10 +38,11 @@ class AtClient {
     char res_err[3];
     #if defined(__AVR__)
     char res_buffer_P[AT_CLIENT_RX_BUFFERSIZE] PROGMEM;
+    char pending_command_P[AT_CLIENT_TX_BUFFERSIZE] PROGMEM;
     #else
     char res_buffer[AT_CLIENT_RX_BUFFERSIZE];
-    #endif
     char pending_command[AT_CLIENT_TX_BUFFERSIZE];
+    #endif
     bool response_ready = false;
     bool cmd_result_ok = false;
     bool cmd_crc_found = false;
@@ -97,7 +98,7 @@ class AtClient {
      */
     void getResponse(char* response, const char* prefix = nullptr,
                      size_t buffer_size = AT_CLIENT_RX_BUFFERSIZE);
-    void getResponse(String& response, const char* prefix);
+    void getResponse(String& response, const char* prefix = nullptr);
     String sgetResponse(const char* prefix = nullptr);
 
     /**

@@ -25,60 +25,6 @@ void AtClient::toggleRaw(bool raw) {
   #endif
 }
 
-bool AtClient::isRxBufferFull() {
-  #if defined(__AVR__) || defined(ESP8266)
-  return strlen(res_buffer_P) == rx_buffer_size;
-  #else
-  return strlen(res_buffer) >= rx_buffer_size - 1;
-  #endif
-}
-
-void AtClient::clearRxBuffer() {
-  #if defined(__AVR__) || defined(ESP8266)
-  memset(res_buffer_P, 0, rx_buffer_size);
-  #else
-  memset(res_buffer, 0, rx_buffer_size);
-  #endif
-}
-
-void AtClient::clearPendingCommand() {
-  memset(pending_command, 0, AT_CLIENT_TX_BUFFERSIZE);
-}
-
-bool AtClient::setPendingCommand(const char *at_command) {
-  if (strlen(at_command) > AT_CLIENT_TX_BUFFERSIZE)
-    return false;   // invalid_argument("command too large");
-  strcpy(pending_command, at_command);
-  return true;
-}
-
-String AtClient::sgetResponse(const char* prefix) {
-  String temp;
-  getResponse(temp, prefix);
-  return temp;
-}
-
-void AtClient::getResponse(String& response, const char* prefix) {
-  cleanResponse(prefix);
-  #if defined(__AVR__)
-  response = String(res_buffer_P);   // extract to SRAM first?
-  #else  
-  response = String(res_buffer);
-  #endif
-  response_ready = false;
-}
-
-void AtClient::getResponse(char* response, const char* prefix,
-                                  size_t buffersize) {
-  cleanResponse(prefix);
-  #if defined(__AVR__)
-  strncpy_P(response, res_buffer_P, strlen(res_buffer_P));
-  #else
-  strncpy(response, res_buffer, strlen(res_buffer));
-  #endif
-  response_ready = false;
-}
-
 char* AtClient::responsePtr() {
   #if defined(__AVR__)
   return &res_buffer_P[0];   // may need to extract to SRAM first?
@@ -88,23 +34,59 @@ char* AtClient::responsePtr() {
 }
 
 char* AtClient::commandPtr() {
+  #if defined(__AVR__)
+  return &pending_command_P[0];
+  #else
   return &pending_command[0];
+  #endif
+}
+
+bool AtClient::isRxBufferFull() {
+  return strlen(responsePtr()) >= rx_buffer_size - 1;
+}
+
+void AtClient::clearRxBuffer() {
+  memset(responsePtr(), 0, rx_buffer_size);
+}
+
+void AtClient::getResponse(char* response, const char* prefix, size_t buffersize) {
+  cleanResponse(prefix);
+  strncpy(response, responsePtr(), buffersize);
+  response_ready = false;
+}
+
+void AtClient::getResponse(String& response, const char* prefix) {
+  response = sgetResponse(prefix);
+  response_ready = false;
+}
+
+String AtClient::sgetResponse(const char* prefix) {
+  cleanResponse(prefix);
+  return String(responsePtr());
+}
+
+void AtClient::clearPendingCommand() {
+  memset(commandPtr(), 0, tx_buffer_size);
+}
+
+bool AtClient::setPendingCommand(const char *at_command) {
+  if (strlen(at_command) > tx_buffer_size)
+    return false;   // invalid_argument("command too large");
+  strncpy(commandPtr(), at_command, tx_buffer_size);
+  return true;
 }
 
 char AtClient::lastCharRead(size_t n) {
   if (n <= 0)
     return -1;
-  #if defined(__AVR__) || defined(ESP8266)
-  return res_buffer_P[strlen(res_buffer) - 1];
-  #else
-  return res_buffer[strlen(res_buffer) - n];
-  #endif
+  char* buffer = responsePtr();
+  return buffer[strlen(buffer) - n];
 }
 
 // If any data is on the serial port read until a match of read_until
 bool AtClient::checkUrc(const char* read_until, time_t timeout_ms) {
-  if (strlen(pending_command) > 0 || busy || serial.available() == 0) {
-    if (strlen(pending_command) > 0) LOG_TRACE("AT command pending");
+  if (strlen(commandPtr()) > 0 || busy || serial.available() == 0) {
+    if (strlen(commandPtr()) > 0) LOG_TRACE("AT command pending");
     if (busy) LOG_TRACE("busy");
     // if (serial.available() == 0) LOG_TRACE("No data");
     return false;
@@ -132,7 +114,7 @@ bool AtClient::checkUrc(const char* read_until, time_t timeout_ms) {
 }
 
 bool AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) {
-  if (strlen(pending_command) > 0 || busy || serial.available() > 0)
+  if (strlen(commandPtr()) > 0 || busy || serial.available() > 0)
     return false;
   LOG_DEBUG("Sending command:", at_command);
   busy = true;
@@ -142,14 +124,14 @@ bool AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) {
   serial.flush();   // Wait for any prior outgoing data to complete
   setPendingCommand(at_command);
   if (crc) {
-    applyCrc(pending_command, AT_CLIENT_TX_BUFFERSIZE);
+    applyCrc(commandPtr(), tx_buffer_size);
   }
-  pending_command[strlen(pending_command)] = '\r';
+  commandPtr()[strlen(commandPtr())] = '\r';
   #ifdef LOG_GET_LEVEL
   if (LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG)
-    PRINTLN(tx_trace_tag, debugString(pending_command));
+    PRINTLN(tx_trace_tag, debugString(commandPtr()));
   #endif
-  serial.print(pending_command);
+  serial.print(commandPtr());
   serial.flush();
   busy = false;
   return readAtResponse(timeout_ms);
@@ -209,11 +191,11 @@ bool AtClient::readAtResponse(uint16_t timeout_ms) {
         }   // else intermediate line formatter - keep parsing
       } else if (last == AT_CR) {
         char* res = responsePtr();
-        if (endsWith(res, pending_command)) {
+        if (endsWith(res, commandPtr())) {
           toggleRaw(false);
-          if (!startsWith(res, pending_command))
+          if (!startsWith(res, commandPtr()))
             LOG_WARN("Unexpected pre-echo data removed:",
-                     debugString(res, 0, strlen(res) - strlen(pending_command)));
+                     debugString(res, 0, strlen(res) - strlen(commandPtr())));
           LOG_DEBUG("Echo received - clearing RX buffer");
           clearRxBuffer();   // remove echo from response
           cmd_parsing = PARSE_RESPONSE;
@@ -278,18 +260,18 @@ parse_state_t AtClient::parsingOk() {
   parse_state_t next_state = PARSE_OK;
   cmd_result_ok = true;
   LOG_DEBUG("Result OK");
-  LOG_TRACE("Assessing pending command for CRC toggle: ", pending_command);
+  LOG_TRACE("Assessing pending command for CRC toggle: ", commandPtr());
   if (!this->crc) {
-    if (includes(pending_command, (const char*)"CRC=1\r") ||
-        includes(pending_command, (const char*)"crc=1\r")) {
+    if (includes(commandPtr(), (const char*)"CRC=1\r") ||
+        includes(commandPtr(), (const char*)"crc=1\r")) {
       LOG_INFO("CRC enabled by pending command - set flag");
       this->crc = true;
       next_state = PARSE_CRC;
     }
   } else {
-    if ((includes(pending_command, (const char*)"CRC=0\r") ||
-        includes(pending_command, (const char*)"crc=0\r")) ||
-        includes(pending_command, 'Z') && serial.available() == 0) {
+    if ((includes(commandPtr(), (const char*)"CRC=0\r") ||
+        includes(commandPtr(), (const char*)"crc=0\r")) ||
+        includes(commandPtr(), 'Z') && serial.available() == 0) {
       LOG_INFO("CRC disabled by pending command - clear flag");
       this->crc = false;
     } else {
