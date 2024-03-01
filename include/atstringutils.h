@@ -39,10 +39,12 @@ void debugPrint(const String& str);
  * @brief Get a string using `printableChar` substitutions for debug.
  * 
  * @param str The original string or character
- * @return String The debug-formatted string
+ * @param start Optional slice start (default 0 = start of string)
+ * @param end Optional slice end (default/0 = end of string)
+ * @return The debug-formatted string
  */
-String debugString(const char* str);
-String debugString(const String& str);
+String debugString(const char* str, size_t start = 0, size_t end = 0);
+String debugString(const String& str, size_t start = 0, size_t end = 0);
 String debugString(const char c);
 
 /**

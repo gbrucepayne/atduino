@@ -46,10 +46,14 @@ void debugPrint(const String& str) {
   }
 }
 
-String debugString(const String &str) {
+String debugString(const String &str, size_t start, size_t end) {
   String debug_string = "";
   size_t str_len = str.length();
-  for (size_t i = 0; i < str_len; i++) {
+  if (start > str_len)
+    start = 0;
+  if (end > 0 && end > start)
+    str_len = end;
+  for (size_t i = start; i < str_len; i++) {
     char c = str[i];
     if (c == '\b') {
       debug_string += "<bs>";
@@ -66,8 +70,8 @@ String debugString(const String &str) {
   return debug_string;
 }
 
-String debugString(const char* str) {
-  return debugString(String(str));
+String debugString(const char* str, size_t start, size_t end) {
+  return debugString(String(str), start, end);
 }
 
 String debugString(const char c) {
