@@ -14,8 +14,7 @@ void setup() {
   Serial.begin(115200);
   ModemSerial.begin(MODEM_BAUD);
   delay(3000);
-  Serial.println("Starting basic example...");
-  Serial.print("DebugLog level: ");
+  Serial.print("***\nStarting basic example. DebugLogLevel");
   Serial.println((int)LOG_GET_LEVEL());
   start_time = millis();
 }

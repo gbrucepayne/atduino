@@ -2,8 +2,8 @@
 
 namespace at {
 
-static const char rx_debug_tag[] = "[DEBUG][RX] <<<";
-static const char tx_debug_tag[] = "[DEBUG][TX] >>>";
+static const char rx_trace_tag[] = "[TRACE][RX] <<<";
+static const char tx_trace_tag[] = "[TRACE][TX] >>>";
 
 /**
  * @brief Add a preamble to raw character debug or newline for other debug
@@ -11,12 +11,14 @@ static const char tx_debug_tag[] = "[DEBUG][TX] >>>";
 */
 void AtClient::toggleRaw(bool raw) {
   #ifdef ARDUINO
-  if (LOG_GET_LEVEL() > DebugLogLevel::LVL_INFO) {
-    if (raw && !debug_raw) {
-      PRINT(rx_debug_tag, "");
+  if (LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG) {
+    if (raw) {
+      if (!debug_raw)
+        PRINT(rx_trace_tag, "");
       debug_raw = true;
-    } else if (!raw && debug_raw) {
-      PRINTLN();
+    } else {
+      if (debug_raw)
+        PRINTLN();
       debug_raw = false;
     }
   }
@@ -118,8 +120,6 @@ bool AtClient::checkUrc(const char* read_until, time_t timeout_ms) {
     readSerialChar();
     if (strlen(responsePtr()) > strlen(read_until) &&
         endsWith(responsePtr(), read_until)) {
-      toggleRaw(false);
-      LOG_TRACE("Found terminator");
       response_ready = true;
       break;
     }
@@ -134,6 +134,7 @@ bool AtClient::checkUrc(const char* read_until, time_t timeout_ms) {
 bool AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) {
   if (strlen(pending_command) > 0 || busy || serial.available() > 0)
     return false;
+  LOG_DEBUG("Sending command:", at_command);
   busy = true;
   response_ready = false;
   clearPendingCommand();
@@ -144,9 +145,9 @@ bool AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) {
     applyCrc(pending_command, AT_CLIENT_TX_BUFFERSIZE);
   }
   pending_command[strlen(pending_command)] = '\r';
-  #ifdef ARDUINO
+  #ifdef LOG_GET_LEVEL
   if (LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG)
-    PRINTLN(tx_debug_tag, debugString(pending_command));
+    PRINTLN(tx_trace_tag, debugString(pending_command));
   #endif
   serial.print(pending_command);
   serial.flush();
@@ -165,7 +166,7 @@ bool AtClient::readAtResponse(uint16_t timeout_ms) {
   cmd_parsing = echo ? PARSE_ECHO : PARSE_RESPONSE;
   uint16_t countdown = (uint16_t)(timeout_ms / 1000);
   time_t tick = LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG ? 1 : 0;
-  LOG_TRACE("[", millis(), "] Timeout:", timeout_ms, "ms; Countdown:", countdown, "s");
+  LOG_TRACE("Timeout:", timeout_ms, "ms; Countdown:", countdown, "s");
   for (time_t start = millis(); millis() - start < timeout_ms;) {
     while (serial.available() > 0 && cmd_parsing < PARSE_OK) {
       toggleRaw(true);
@@ -178,7 +179,7 @@ bool AtClient::readAtResponse(uint16_t timeout_ms) {
           // check if V0 info suffix or multiline separator
           if (lastCharRead(2) != AT_CR) {
             toggleRaw(false);
-            LOG_WARN("Unexpected response data removed: %s", res);
+            LOG_WARN("Unexpected response data removed:", debugString(res));
             clearRxBuffer();
           }
         }
@@ -211,7 +212,8 @@ bool AtClient::readAtResponse(uint16_t timeout_ms) {
         if (endsWith(res, pending_command)) {
           toggleRaw(false);
           if (!startsWith(res, pending_command))
-            LOG_WARN("Unexpected pre-echo data removed: %s", res);
+            LOG_WARN("Unexpected pre-echo data removed:",
+                     debugString(res, 0, strlen(res) - strlen(pending_command)));
           LOG_DEBUG("Echo received - clearing RX buffer");
           clearRxBuffer();   // remove echo from response
           cmd_parsing = PARSE_RESPONSE;
@@ -223,12 +225,10 @@ bool AtClient::readAtResponse(uint16_t timeout_ms) {
             cmd_parsing = parsingShort(cmd_parsing);
           }
         }
-      } else {
-        if (cmd_parsing == PARSE_CRC && last == CRC_SEP) {
-          cmd_crc_found = true;
-        }
+      } else if (last == CRC_SEP && cmd_parsing == PARSE_CRC) {
+        cmd_crc_found = true;
       }
-    }
+    }   // parsed available char
     if (cmd_parsing >= PARSE_OK) {
       toggleRaw(false);
       LOG_TRACE("Parsing complete");
@@ -242,7 +242,7 @@ bool AtClient::readAtResponse(uint16_t timeout_ms) {
         LOG_TRACE("[", millis(), "] Countdown:", countdown);
       }
     }
-  }
+  }   // parsing timeout loop
   toggleRaw(false);
   if (cmd_parsing < PARSE_OK) {
     if (cmd_result_ok) {
