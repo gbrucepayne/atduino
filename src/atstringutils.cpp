@@ -397,15 +397,16 @@ void trim(String &str) {
 
 long getNextParameter(char* at_param, const char* response,
                       size_t buffersize, const char sep) {
-  size_t res_len = strlen(response);
+  if (strlen(response) == 0)
+    return -1;
   int extra_param_count = instancesOf(response, sep);
   size_t param_end = extra_param_count > 0 ? indexOf(response, sep) : 0;
-  if (res_len == 0 || (param_end == 0 && strlen(response) > buffersize) ||
-      param_end > buffersize) {
-    return -1;
+  if (indexOf(response, sep) == 0) {
+    at_param[0] = '\0';
+  } else {
+    substring(at_param, response, 0, param_end);
   }
-  substring(at_param, response, 0, param_end);
-  return (strlen(at_param) + (param_end > 0 ? 1 : 0));
+  return (strlen(at_param) + (extra_param_count > 0 ? 1 : 0));
 }
 
 void uintToChar(uint32_t n, char *result, size_t result_size) {
