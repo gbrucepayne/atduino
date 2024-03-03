@@ -50,7 +50,7 @@ class AtClient {
     bool debug_raw = false;
     bool isRxBufferFull();
     bool setPendingCommand(const char* at_command);
-    bool readAtResponse(uint16_t timeout = AT_TIMEOUT_MS);
+    at_error_t readAtResponse(uint16_t timeout = AT_TIMEOUT_MS);
     parse_state_t parsingOk();
     parse_state_t parsingError();
     parse_state_t parsingShort(uint8_t current);
@@ -85,10 +85,12 @@ class AtClient {
      * 
      * @param at_command The AT command to send
      * @param timeout The timeout in milliseconds (default 1 second)
-     * @return true if accepted
+     * @return An error code (AT_OK = 0)
      */
-    bool sendAtCommand(const char* at_command, uint16_t timeout_ms = AT_TIMEOUT_MS);
-    bool sendAtCommand(const String& at_command, uint16_t timeout_ms = AT_TIMEOUT_MS);
+    at_error_t sendAtCommand(const char* at_command,
+                             uint16_t timeout_ms = AT_TIMEOUT_MS);
+    at_error_t sendAtCommand(const String& at_command,
+                             uint16_t timeout_ms = AT_TIMEOUT_MS);
 
     /**
      * @brief Put the AT command response into a string

@@ -57,11 +57,11 @@ void AtClient::getResponse(char* response, const char* prefix, size_t buffersize
 
 void AtClient::getResponse(String& response, const char* prefix) {
   response = sgetResponse(prefix);
-  response_ready = false;
 }
 
 String AtClient::sgetResponse(const char* prefix) {
   cleanResponse(prefix);
+  response_ready = false;
   return String(responsePtr());
 }
 
@@ -113,7 +113,7 @@ bool AtClient::checkUrc(const char* read_until, time_t timeout_ms) {
   return true;
 }
 
-bool AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) {
+at_error_t AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) {
   if (strlen(commandPtr()) > 0 || busy || serial.available() > 0)
     return false;
   LOG_DEBUG("Sending command:", at_command);
@@ -137,11 +137,11 @@ bool AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) {
   return readAtResponse(timeout_ms);
 }
 
-bool AtClient::sendAtCommand(const String &at_command, uint16_t timeout_ms) {
+at_error_t AtClient::sendAtCommand(const String &at_command, uint16_t timeout_ms) {
   return sendAtCommand(at_command.c_str(), timeout_ms);
 }
 
-bool AtClient::readAtResponse(uint16_t timeout_ms) {
+at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
   if (busy)
     return false;
   busy = true;
@@ -253,7 +253,7 @@ bool AtClient::readAtResponse(uint16_t timeout_ms) {
   }
   clearPendingCommand();
   busy = false;
-  return response_ready;
+  return cmd_error;
 }
 
 parse_state_t AtClient::parsingOk() {
