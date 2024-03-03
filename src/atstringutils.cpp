@@ -435,34 +435,45 @@ void uintToChar(uint32_t n, char *result, size_t result_size) {
 
 // ---------------- HEX / BASE64 CONVERSIONS -----------------------
 
-static const char *HEX_CHARSET = "0123456789ABCDEF";
+static const char* HEX_CHARSET = "0123456789ABCDEF";
 
-void intToHex(char *hex_string, int value, uint8_t width, size_t buffer_size) {
+bool isHex(const char* candidate) {
+  if ((strlen(candidate) % 2) != 0)
+    return false;
+  size_t len = strlen(candidate);
+  for (size_t i = 0; i < len; i++) {
+    if (!std::isxdigit(static_cast<unsigned char>(candidate[i])))
+      return false;
+  }
+  return true;
+}
+
+void intToHex(char* hex_string, int value, uint8_t width, size_t buffer_size) {
   memset(hex_string, 0, buffer_size);
   for (size_t i=0, j=(width-1)*4; i < width; ++i, j-=4) {
     hex_string[i] = HEX_CHARSET[(value >> j) & 0xF];
   }
 }
 
-void intToHex(String &hex_string, int value, uint8_t width) {
+void intToHex(String& hex_string, int value, uint8_t width) {
   hex_string = "";
   for (size_t i=0, j=(width-1)*4; i < width; ++i, j-=4) {
     hex_string += HEX_CHARSET[(value >> j) & 0xF];
   }
 }
 
-uint32_t hexToInt(const char *hex_value) {
+uint32_t hexToInt(const char* hex_value) {
   return std::stoul(hex_value, nullptr, 16);
 }
 
-uint32_t hexToInt(const String &hex_value) {
+uint32_t hexToInt(const String& hex_value) {
   return std::stoul(hex_value.c_str(), nullptr, 16);
 }
 
-static const char *B64_CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+static const char* B64_CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                  "abcdefghijklmnopqrstuvwxyz0123456789+/";
 
-void base64Encode(char *b64_str, const uint8_t *buffer, size_t buffer_len) {
+void base64Encode(char* b64_str, const uint8_t* buffer, size_t buffer_len) {
   int i = 0;
   int j = 0;
   uint8_t char_array_3[3];
@@ -499,7 +510,7 @@ void base64Encode(char *b64_str, const uint8_t *buffer, size_t buffer_len) {
   b64_str[out_idx] = '\0';
 }
 
-void base64Encode(String &b64_str, const uint8_t *buffer, size_t buffersize) {
+void base64Encode(String& b64_str, const uint8_t* buffer, size_t buffersize) {
   int i = 0;
   int j = 0;
   uint8_t char_array_3[3];
@@ -553,7 +564,7 @@ static size_t lookupB64(const char c) {
   return strlen(B64_CHARSET);
 }
 
-void base64Decode(char *buffer, const char *b64_str) {
+void base64Decode(char* buffer, const char* b64_str) {
   int in_len = strlen(b64_str);
   int i = 0;
   int j = 0;
@@ -593,7 +604,7 @@ void base64Decode(char *buffer, const char *b64_str) {
   }
 }
 
-size_t base64BufferLength(const char *b64_str) {
+size_t base64BufferLength(const char* b64_str) {
   size_t str_len = strlen(b64_str);
   size_t buf_len = str_len / 4 * 3;
   for (size_t r_idx = 1; r_idx <= 2; r_idx++) {

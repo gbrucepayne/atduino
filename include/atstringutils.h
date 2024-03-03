@@ -177,6 +177,13 @@ long getNextParameter(char* at_param, const char* response,
 void uintToChar(uint32_t n, char* result, size_t result_size);
 
 /**
+ * @brief Check if a string is valid hexadecimal characters
+ * 
+ * @param candidate The candidate (c)string
+*/
+bool isHex(const char* candidate);
+
+/**
  * @brief Convert an integer value to a hex string
  * 
  * @param hex_string The target string
