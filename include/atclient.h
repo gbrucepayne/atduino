@@ -57,6 +57,8 @@ class AtClient {
     void cleanResponse(const char* prefix = nullptr);
     
   public:
+    bool autoflag = false;   // true toggles verbose flag based on parsing
+    
     /**
      * @brief Construct a new At Command Buffer object
      * 
@@ -104,11 +106,11 @@ class AtClient {
     String sgetResponse(const char* prefix = nullptr);
 
     /**
-     * @brief Check the serial line for unsolicited data
+     * @brief Check the serial line for unsolicited data with prefix `+`
      * 
      * @param read_until The line terminator (default <cr><lf>)
      * @param timeout_ms Maximum time to wait for terminator in milliseconds (default 1 second)
-     * @return false if busy processing a command or no data found 
+     * @return false if busy processing a command or no/invalid data found 
      * @return true if unsolicited data found
      */
     bool checkUrc(const char* read_until=nullptr, time_t timeout_ms = AT_TIMEOUT_MS);
@@ -132,7 +134,7 @@ class AtClient {
     uint8_t cmd_parsing = 0;
     bool data_mode = false;
     bool data_mode_echo = false;
-    bool readSerialChar(bool ignore_unprintable = true);
+    bool readSerialChar(bool ignore_unprintable = false);
     char lastCharRead(size_t n = 1);
     void toggleRaw(bool raw);
     char* commandPtr();

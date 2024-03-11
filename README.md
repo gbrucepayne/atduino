@@ -70,7 +70,8 @@ commmand response.
 ### CRC support
 
 Currently a CCITT-16-CRC option is supported for commands and responses. The
-enable/disable command may be configured using `AT_CRC_ENABLE` (default `"CRC"`).
+enable/disable command may be configured using `+CRC=<1|0>`.
+(`%CRC=<1|0>` also works)
 
 ## Server (Work in Progress)
 

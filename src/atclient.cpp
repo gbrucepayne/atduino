@@ -85,10 +85,10 @@ char AtClient::lastCharRead(size_t n) {
 
 // If any data is on the serial port read until a match of read_until
 bool AtClient::checkUrc(const char* read_until, time_t timeout_ms) {
-  if (strlen(commandPtr()) > 0 || busy || serial.available() == 0) {
+  if (strlen(commandPtr()) > 0 || serial.available() == 0  || busy) {
     if (strlen(commandPtr()) > 0) LOG_TRACE("AT command pending");
-    if (busy) LOG_TRACE("busy");
-    // if (serial.available() == 0) LOG_TRACE("No data");
+    if (serial.available() == 0) LOG_TRACE("No data");
+    if (busy) LOG_TRACE("Busy with prior operation");
     return false;
   }
   busy = true;
@@ -98,34 +98,48 @@ bool AtClient::checkUrc(const char* read_until, time_t timeout_ms) {
   toggleRaw(true);
   clearRxBuffer();
   response_ready = false;
-  for (time_t start = millis(); millis() - start < timeout_ms;) {
-    readSerialChar();
+  uint32_t start_time = millis();
+  for (uint32_t start = start_time; (millis() - start) < timeout_ms;) {
+    if (!readSerialChar()) {
+      LOG_WARN("Bad serial byte while parsing URC");
+      break;
+    }
     if (strlen(responsePtr()) > strlen(read_until) &&
         endsWith(responsePtr(), read_until)) {
-      response_ready = true;
+      if (startsWith(responsePtr(), "+")) {
+        response_ready = true;
+      } else {
+        LOG_WARN("Invalid URC prefix");
+      }
       break;
     }
   }
   toggleRaw(false);
-  if (!response_ready)
-    LOG_WARN("Timed out waiting for terminator");
+  if (!response_ready) {
+    if ((millis() - start_time) >= timeout_ms)
+      LOG_WARN("Timed out waiting for terminator");
+    clearRxBuffer();
+  }
   busy = false;
-  return true;
+  return response_ready;
 }
 
 at_error_t AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) {
-  if (strlen(commandPtr()) > 0 || busy || serial.available() > 0)
-    return false;
+  if (strlen(commandPtr()) > 0 || serial.available() > 0 || busy) {
+    if (strlen(commandPtr()) > 0) LOG_TRACE("Prior AT command pending");
+    if (serial.available() > 0) LOG_TRACE("Other data unretrieved");
+    if (busy) LOG_TRACE("Busy with prior operation");
+    cmd_error = AT_ERR_BUSY;
+    return cmd_error;
+  }
   LOG_DEBUG("Sending command:", at_command);
   busy = true;
   response_ready = false;
-  clearPendingCommand();
+  // clearPendingCommand();   // redundant
   clearRxBuffer();
   serial.flush();   // Wait for any prior outgoing data to complete
   setPendingCommand(at_command);
-  if (crc) {
-    applyCrc(commandPtr(), tx_buffer_size);
-  }
+  if (crc) applyCrc(commandPtr(), tx_buffer_size);
   commandPtr()[strlen(commandPtr())] = '\r';
   #ifdef LOG_GET_LEVEL
   if (LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG)
@@ -133,7 +147,6 @@ at_error_t AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) 
   #endif
   serial.print(commandPtr());
   serial.flush();
-  busy = false;
   return readAtResponse(timeout_ms);
 }
 
@@ -142,9 +155,7 @@ at_error_t AtClient::sendAtCommand(const String &at_command, uint16_t timeout_ms
 }
 
 at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
-  if (busy)
-    return false;
-  busy = true;
+  busy = true;   // should be redundant
   cmd_parsing = echo ? PARSE_ECHO : PARSE_RESPONSE;
   uint16_t countdown = (uint16_t)(timeout_ms / 1000);
   time_t tick = LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG ? 1 : 0;
@@ -152,7 +163,11 @@ at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
   for (time_t start = millis(); millis() - start < timeout_ms;) {
     while (serial.available() > 0 && cmd_parsing < PARSE_OK) {
       toggleRaw(true);
-      readSerialChar();
+      if (!readSerialChar()) {
+        cmd_error = AT_ERR_BAD_BYTE;
+        cmd_parsing = PARSE_ERROR;
+        break;
+      }
       char last = lastCharRead();
       if (last == AT_LF) {
         // unsolicited, V0 info-suffix/multiline sep, V1 prefix/multiline/suffix
@@ -229,8 +244,8 @@ at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
   if (cmd_parsing < PARSE_OK) {
     if (cmd_result_ok) {
       if (verbose && endsWith(responsePtr(), "\r")) {
-        LOG_INFO("Detected non-verbose - setting flag");
-        verbose = false;
+        LOG_INFO("Detected non-verbose");
+        if (autoflag) verbose = false;
       } else if (crc && !cmd_crc_found) {
         LOG_INFO("CRC expected but not found - clearing flag");
         crc = false;
@@ -300,9 +315,9 @@ parse_state_t AtClient::parsingShort(uint8_t current) {
   LOG_DEBUG("Checking candidate short response code");
   char* res = responsePtr();
   if (!startsWith(res, terminator)) {
-    if (this->verbose) {
-      LOG_WARN("Short response code found - clearing verbose flag");
-      this->verbose = false;
+    if (verbose) {
+      LOG_WARN("Short response code found");
+      if (autoflag) verbose = false;
     }
     if (endsWith(res, res_ok)) {
       next_state = parsingOk();
@@ -333,18 +348,19 @@ void AtClient::cleanResponse(const char *prefix) {
   LOG_TRACE("Trimmed and consolidated line feeds:", debugString(responsePtr()));
 }
 
+/**
+ * @brief Attempts to read the next serial character
+ * @returns false if character is invalid else true (success or no data)
+*/
 bool AtClient::readSerialChar(bool ignore_unprintable) {
-  bool success = false;
+  bool success = true;
   if (serial.available() > 0) {
     if (!isRxBufferFull()) {
       char c = serial.read();
       if (!printableChar(c, LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG)) {
-        if (ignore_unprintable) {
-          success = true;
-        }
+        if (!ignore_unprintable) success = false;
       } else {
         responsePtr()[strlen(responsePtr())] = c;
-        success = true;
       }
     }
   }

@@ -39,7 +39,8 @@ typedef unsigned short at_error_t;
 #define AT_ERR_TIMEOUT 255
 #define AT_ERR_CRC_CONFIG 254
 #define AT_ERR_REENTRANT 253
-#define AT_BUSY 252
+#define AT_ERR_BUSY 252
+#define AT_ERR_BAD_BYTE 251
 
 typedef unsigned short parse_state_t;
 #define PARSE_NONE 0
