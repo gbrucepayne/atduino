@@ -98,6 +98,7 @@ int instancesOf(const String& str, const String& substr);
  * @return true If str starts with substr
  */
 bool startsWith(const char* str, const char* substr, bool end = false);
+bool startsWith(const char* str, const char c, bool end = false);
 bool startsWith(const String& str, const String& substr);
 
 /**
