@@ -106,6 +106,7 @@ bool AtClient::checkUrc(const char* read_until, uint32_t timeout_ms,
   timeout_ms += wait_ms;
   for (uint32_t start = millis(); (millis() - start) < timeout_ms;) {
     if (!readSerialChar() && urc_found) {
+      toggleRaw(false);
       LOG_WARN("Bad serial byte while parsing URC");
       break;
     }
@@ -114,9 +115,11 @@ bool AtClient::checkUrc(const char* read_until, uint32_t timeout_ms,
         urc_found = true;
         if (!startsWith(responsePtr(), terminator) &&
             !startsWith(responsePtr(), prefix)) {
+          toggleRaw(false);
           LOG_WARN("Dumping pre-URC data:", debugString(responsePtr()));
           clearRxBuffer();
           responsePtr()[0] = prefix;
+          toggleRaw(true);
         }
       }
     } else if (strlen(responsePtr()) > (strlen(read_until) + 1) &&
@@ -288,6 +291,7 @@ at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
   }
   clearPendingCommand();
   busy = false;
+  if (cmd_error == AT_ERR_BAD_BYTE) LOG_WARN("Bad byte received in response");
   LOG_TRACE("Finished parsing AT command response");
   return cmd_error;
 }
