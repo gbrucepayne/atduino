@@ -98,12 +98,13 @@ bool AtClient::checkUrc(const char* read_until, uint32_t timeout_ms,
   busy = true;
   if (read_until == nullptr)
     read_until = terminator;
-  LOG_DEBUG("Processing URC until", debugString(read_until));
+  timeout_ms += wait_ms;
+  LOG_DEBUG("Processing URC until", debugString(read_until),
+            "or", timeout_ms, "ms");
   toggleRaw(true);
   clearRxBuffer();
   response_ready = false;
   bool urc_found = false;
-  timeout_ms += wait_ms;
   for (uint32_t start = millis(); (millis() - start) < timeout_ms;) {
     if (!readSerialChar() && urc_found) {
       toggleRaw(false);
