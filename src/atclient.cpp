@@ -77,18 +77,21 @@ bool AtClient::setPendingCommand(const char *at_command) {
 }
 
 char AtClient::lastCharRead(size_t n) {
-  if (n <= 0)
-    return -1;
   char* buffer = responsePtr();
+  if (n <= 0 || strlen(buffer) < n)
+    return -1;
   return buffer[strlen(buffer) - n];
 }
 
 // If any data is on the serial port read until a match of read_until
-bool AtClient::checkUrc(const char* read_until, time_t timeout_ms) {
-  if (strlen(commandPtr()) > 0 || serial.available() == 0  || busy) {
-    if (strlen(commandPtr()) > 0) LOG_TRACE("AT command pending");
-    if (serial.available() == 0) LOG_TRACE("No data");
-    if (busy) LOG_TRACE("Busy with prior operation");
+bool AtClient::checkUrc(const char* read_until, uint32_t timeout_ms,
+                        const char prefix, uint16_t wait_ms) {
+  if (strlen(commandPtr()) > 0 ||
+      (wait_ms == 0 && serial.available() == 0)  ||
+      busy) {
+    if (strlen(commandPtr()) > 0) LOG_WARN("AT command pending");
+    if (serial.available() == 0) LOG_DEBUG("No data");
+    if (busy) LOG_WARN("Busy with prior operation");
     return false;
   }
   busy = true;
@@ -98,26 +101,31 @@ bool AtClient::checkUrc(const char* read_until, time_t timeout_ms) {
   toggleRaw(true);
   clearRxBuffer();
   response_ready = false;
-  uint32_t start_time = millis();
-  for (uint32_t start = start_time; (millis() - start) < timeout_ms;) {
-    if (!readSerialChar()) {
+  bool urc_found = false;
+  timeout_ms += wait_ms;
+  for (uint32_t start = millis(); (millis() - start) < timeout_ms;) {
+    if (!readSerialChar() && urc_found) {
       LOG_WARN("Bad serial byte while parsing URC");
       break;
     }
-    if (strlen(responsePtr()) > strlen(read_until) &&
-        endsWith(responsePtr(), read_until)) {
-      if (startsWith(responsePtr(), "+")) {
-        response_ready = true;
-      } else {
-        LOG_WARN("Invalid URC prefix");
+    if (!urc_found) {
+      if (lastCharRead() == prefix) {
+        urc_found = true;
+        if (strlen(responsePtr()) > 1) {
+          LOG_WARN("Dumping pre-URC data:", debugString(responsePtr()));
+          responsePtr()[0] = prefix;
+          responsePtr()[1] = '\0';
+        }
       }
+    } else if (strlen(responsePtr()) > (strlen(read_until) + 1) &&
+               endsWith(responsePtr(), read_until)) {
+      response_ready = true;
       break;
     }
   }
   toggleRaw(false);
   if (!response_ready) {
-    if ((millis() - start_time) >= timeout_ms)
-      LOG_WARN("Timed out waiting for terminator");
+    LOG_WARN("Timed out waiting for prefix and terminator");
     clearRxBuffer();
   }
   busy = false;
@@ -158,9 +166,9 @@ at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
   busy = true;   // should be redundant
   cmd_parsing = echo ? PARSE_ECHO : PARSE_RESPONSE;
   uint16_t countdown = (uint16_t)(timeout_ms / 1000);
-  time_t tick = LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG ? 1 : 0;
+  uint32_t tick = LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG ? 1 : 0;
   LOG_TRACE("Timeout:", timeout_ms, "ms; Countdown:", countdown, "s");
-  for (time_t start = millis(); millis() - start < timeout_ms;) {
+  for (uint32_t start = millis(); millis() - start < timeout_ms;) {
     while (serial.available() > 0 && cmd_parsing < PARSE_OK) {
       toggleRaw(true);
       if (!readSerialChar()) {

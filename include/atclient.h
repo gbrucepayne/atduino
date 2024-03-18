@@ -109,11 +109,14 @@ class AtClient {
      * @brief Check the serial line for unsolicited data with prefix `+`
      * 
      * @param read_until The line terminator (default <cr><lf>)
-     * @param timeout_ms Maximum time to wait for terminator in milliseconds (default 1 second)
+     * @param timeout_ms Maximum time to wait for terminator in milliseconds
      * @return false if busy processing a command or no/invalid data found 
      * @return true if unsolicited data found
      */
-    bool checkUrc(const char* read_until=nullptr, time_t timeout_ms = AT_TIMEOUT_MS);
+    bool checkUrc(const char* read_until=nullptr,
+                  uint32_t timeout_ms = URC_TIMEOUT_MS,
+                  const char prefix = '+',
+                  uint16_t wait_ms = 0);
 
     /**
      * @brief Check if the response or URC is ready for retrieval
