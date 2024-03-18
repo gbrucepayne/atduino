@@ -157,7 +157,7 @@ at_error_t AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) 
     while (serial.available() > 0) {
       readSerialChar();
     }
-    LOG_WARN("Dumping Rx data:", responsePtr());
+    LOG_WARN("Dumping unsolicited Rx data:", debugString(responsePtr()));
   }
   clearRxBuffer();
   serial.flush();   // Wait for any prior outgoing data to complete
