@@ -218,7 +218,7 @@ bool startsWith(const char *str, const char *substr, bool end) {
   return char_matches == ss_len;
 }
 
-bool startsWith(const char* str, const char c, bool end = false) {
+bool startsWith(const char* str, const char c, bool end) {
   char substr[2] = "";
   substr[0] = c;
   return startsWith(str, substr, end);
