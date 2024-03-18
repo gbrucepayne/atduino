@@ -7,7 +7,7 @@
 at::AtClient modem(ModemSerial);
 size_t command_count = 0;
 int urc_count = 0;
-time_t start_time = 0;
+uint32_t start_time = 0;
 
 void setup() {
   LOG_SET_LEVEL(DebugLogLevel::LVL_TRACE);
