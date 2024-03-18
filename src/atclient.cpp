@@ -111,10 +111,11 @@ bool AtClient::checkUrc(const char* read_until, uint32_t timeout_ms,
     if (!urc_found) {
       if (lastCharRead() == prefix) {
         urc_found = true;
-        if (strlen(responsePtr()) > 1) {
+        if (!startsWith(responsePtr(), terminator) &&
+            !startsWith(responsePtr(), prefix)) {
           LOG_WARN("Dumping pre-URC data:", debugString(responsePtr()));
+          clearRxBuffer();
           responsePtr()[0] = prefix;
-          responsePtr()[1] = '\0';
         }
       }
     } else if (strlen(responsePtr()) > (strlen(read_until) + 1) &&
@@ -125,7 +126,7 @@ bool AtClient::checkUrc(const char* read_until, uint32_t timeout_ms,
   }
   toggleRaw(false);
   if (!response_ready) {
-    LOG_WARN("Timed out waiting for prefix and terminator");
+    LOG_WARN("Timed out waiting for prefix and/or terminator");
     clearRxBuffer();
   }
   busy = false;
