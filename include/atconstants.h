@@ -5,7 +5,8 @@
 #define AT_BAUDRATE 9600
 #endif
 #define CHAR_DELAY 10   // milliseconds 
-#define AT_TIMEOUT_MS 1000
+#define AT_TIMEOUT_MS 1000   // default timeout for command responses
+#define URC_TIMEOUT_MS 250   // default initial or inter-char timeout
 
 #define AT_CLIENT_RX_BUFFERSIZE 32768
 #define AT_CLIENT_TX_BUFFERSIZE 32768
