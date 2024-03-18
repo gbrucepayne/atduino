@@ -124,6 +124,11 @@ class AtClient {
     bool responseReady() { return response_ready; }
 
     /**
+     * @brief Check if the modem is busy processing a prior request/data
+    */
+    bool isBusy() { return busy; }
+
+    /**
      * @brief Get the last error code.
      * May be overridden by derived class for modems supporting such a query.
     */
