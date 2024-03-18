@@ -94,6 +94,7 @@ bool AtClient::checkUrc(const char* read_until, uint32_t timeout_ms,
     if (busy) LOG_WARN("Busy with prior operation");
     return false;
   }
+  LOG_TRACE("Busy parsing URC");
   busy = true;
   if (read_until == nullptr)
     read_until = terminator;
@@ -130,21 +131,31 @@ bool AtClient::checkUrc(const char* read_until, uint32_t timeout_ms,
     clearRxBuffer();
   }
   busy = false;
+  LOG_TRACE("Finished parsing URC");
   return response_ready;
 }
 
 at_error_t AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) {
-  if (strlen(commandPtr()) > 0 || serial.available() > 0 || busy) {
-    if (strlen(commandPtr()) > 0) LOG_TRACE("Prior AT command pending");
-    if (serial.available() > 0) LOG_TRACE("Other data unretrieved");
-    if (busy) LOG_TRACE("Busy with prior operation");
+  // if (strlen(commandPtr()) > 0 || serial.available() > 0 || busy) {
+  if (busy) {
+    if (strlen(commandPtr()) > 0) {
+      LOG_DEBUG("Prior AT command pending");
+    } else {
+      LOG_DEBUG("Parsing URC data");
+    }
     cmd_error = AT_ERR_BUSY;
     return cmd_error;
   }
   LOG_DEBUG("Sending command:", at_command);
+  LOG_TRACE("Busy processing AT command/response");
   busy = true;
   response_ready = false;
-  // clearPendingCommand();   // redundant
+  if (serial.available() > 0) {
+    while (serial.available() > 0) {
+      readSerialChar();
+    }
+    LOG_WARN("Dumping Rx data:", responsePtr());
+  }
   clearRxBuffer();
   serial.flush();   // Wait for any prior outgoing data to complete
   setPendingCommand(at_command);
@@ -164,7 +175,7 @@ at_error_t AtClient::sendAtCommand(const String &at_command, uint16_t timeout_ms
 }
 
 at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
-  busy = true;   // should be redundant
+  // busy = true;   // should be redundant
   cmd_parsing = echo ? PARSE_ECHO : PARSE_RESPONSE;
   uint16_t countdown = (uint16_t)(timeout_ms / 1000);
   uint32_t tick = LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG ? 1 : 0;
@@ -277,7 +288,14 @@ at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
   }
   clearPendingCommand();
   busy = false;
+  LOG_TRACE("Finished parsing AT command response");
   return cmd_error;
+}
+
+at_error_t AtClient::lastErrorCode(bool clear) {
+  at_error_t last = cmd_error;
+  if (clear) cmd_error = AT_OK;
+  return last;
 }
 
 parse_state_t AtClient::parsingOk() {
