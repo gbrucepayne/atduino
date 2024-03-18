@@ -127,7 +127,7 @@ class AtClient {
      * @brief Get the last error code.
      * May be overridden by derived class for modems supporting such a query.
     */
-    virtual at_error_t lastErrorCode() { return cmd_error; }
+    virtual at_error_t lastErrorCode(bool clear = false);
 
   protected:
     Stream& serial;
