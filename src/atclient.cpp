@@ -153,8 +153,7 @@ at_error_t AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) 
   //   cmd_error = AT_ERR_BUSY;
   //   return cmd_error;
   // }
-  LOG_DEBUG("Sending command:", at_command);
-  LOG_TRACE("Busy processing AT command/response");
+  // LOG_TRACE("Busy processing AT command/response");
   // busy = true;
   // response_ready = false;
   if (serial.available() > 0) {
@@ -163,6 +162,7 @@ at_error_t AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) 
     }
     LOG_WARN("Dumping unsolicited Rx data:", debugString(responsePtr()));
   }
+  LOG_DEBUG("Sending command:", at_command);
   clearRxBuffer();
   serial.flush();   // Wait for any prior outgoing data to complete
   setPendingCommand(at_command);
@@ -172,7 +172,12 @@ at_error_t AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) 
   if (LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG)
     PRINTLN(tx_trace_tag, debugString(commandPtr()));
   #endif
-  serial.print(commandPtr());
+  size_t wrote = serial.print(commandPtr());
+  if (wrote < strlen(commandPtr())) {
+    LOG_ERROR("Failed to write all bytes");
+    cmd_error = AT_ERR_BAD_BYTE;
+    return cmd_error;
+  }
   serial.flush();
   return readAtResponse(timeout_ms);
 }
@@ -183,6 +188,7 @@ at_error_t AtClient::sendAtCommand(const String &at_command, uint16_t timeout_ms
 
 at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
   // busy = true;   // should be redundant
+  LOG_DEBUG("Parsing response to", commandPtr(), "for", timeout_ms, "ms");
   cmd_parsing = echo ? PARSE_ECHO : PARSE_RESPONSE;
   uint16_t countdown = (uint16_t)(timeout_ms / 1000);
   uint32_t tick = LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG ? 1 : 0;
