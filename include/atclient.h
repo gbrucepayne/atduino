@@ -126,7 +126,7 @@ class AtClient {
     /**
      * @brief Check if the modem is busy processing a prior request/data
     */
-    bool isBusy() { return busy; }
+    // bool isBusy() { return busy; }
 
     /**
      * @brief Get the last error code.
@@ -138,7 +138,7 @@ class AtClient {
     Stream& serial;
     static const size_t rx_buffer_size = AT_CLIENT_RX_BUFFERSIZE;
     static const size_t tx_buffer_size = AT_CLIENT_TX_BUFFERSIZE;
-    bool busy = false;
+    // bool busy = false;
     uint8_t cmd_parsing = 0;
     bool data_mode = false;
     bool data_mode_echo = false;
