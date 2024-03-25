@@ -188,7 +188,8 @@ at_error_t AtClient::sendAtCommand(const String &at_command, uint16_t timeout_ms
 
 at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
   // busy = true;   // should be redundant
-  LOG_DEBUG("Parsing response to", commandPtr(), "for", timeout_ms, "ms");
+  LOG_DEBUG("Parsing response to", debugString(commandPtr()),
+      "for", timeout_ms, "ms");
   cmd_parsing = echo ? PARSE_ECHO : PARSE_RESPONSE;
   cmd_error = AT_ERR_GENERIC;
   uint16_t countdown = (uint16_t)(timeout_ms / 1000);
