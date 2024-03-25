@@ -190,6 +190,7 @@ at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
   // busy = true;   // should be redundant
   LOG_DEBUG("Parsing response to", commandPtr(), "for", timeout_ms, "ms");
   cmd_parsing = echo ? PARSE_ECHO : PARSE_RESPONSE;
+  cmd_error = AT_ERR_GENERIC;
   uint16_t countdown = (uint16_t)(timeout_ms / 1000);
   uint32_t tick = LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG ? 1 : 0;
   LOG_TRACE("Timeout:", timeout_ms, "ms; Countdown:", countdown, "s");
@@ -291,7 +292,6 @@ at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
       cmd_error = AT_ERR_TIMEOUT;
     }
   } else if (cmd_parsing == PARSE_ERROR) {
-    cmd_error = AT_ERR_GENERIC;
     if (!crc && cmd_crc_found) {
       LOG_WARN("CRC detected but not expected");
       crc = true;
