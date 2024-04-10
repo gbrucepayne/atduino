@@ -13,6 +13,7 @@
 #define AT_STRING_UTILS_H
 
 #include <Arduino.h>
+#include <vector>
 #include "atdebug.h"
 
 namespace at {

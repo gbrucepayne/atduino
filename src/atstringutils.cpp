@@ -28,7 +28,7 @@ bool printableChar(const char c, bool print) {
     snprintf(to_print, 8, "%c", c);
   }
   if (print)
-    PRINT(to_print);
+    ardprintf(to_print);
   return printable;
 }
 
@@ -94,7 +94,7 @@ bool append(String& target, const String& substr) {
 }
 
 bool includes(const char *str, const char *substr) {
-  // LOG_TRACE("Assessing", debugString(str), "for", debugString(substr));
+  // AR_LOGV("Assessing %s for %s", debugString(str), debugString(substr));
   return strstr(str, substr) != nullptr;
 }
 
@@ -155,16 +155,16 @@ int indexOf(const char *str, const char c) {
 }
 
 int instancesOf(const char *str, const char *substr) {
-  // LOG_TRACE("Searching", debugString(str), "for", debugString(substr));
+  // AR_LOGV("Searching %s for %s", debugString(str), debugString(substr));
   int instances = 0;
   size_t s_len = strlen(str);
   size_t ss_len = strlen(substr);
   size_t char_matches = 0;
   if (ss_len > 0) {
     for (size_t i = 0, j = 0; i < s_len; i++) {
-      // LOG_TRACE("Assessing", debugString(str[i]), "vs", debugString(substr[j]));
+      // AR_LOGV("Assessing %s vs %s", debugString(str[i]), debugString(substr[j]));
       if (str[i] == substr[j]) {
-        // LOG_TRACE("Found match for", debugString(substr[j]));
+        // AR_LOGV("Found match for %s", debugString(substr[j]));
         char_matches++;
         j++;
         if (char_matches == ss_len) {
@@ -173,7 +173,7 @@ int instancesOf(const char *str, const char *substr) {
           j = 0;
         }
       } else if (char_matches > 0) {
-        // LOG_TRACE("Mismatch for", debugString(substr[j]), "vs", debugString(str[i]));
+        // AR_LOGV("Mismatch for %s vs %s", debugString(substr[j]), debugString(str[i]));
         char_matches = 0;
         i--;
         j = 0;
@@ -238,7 +238,7 @@ bool endsWith(const String &str, const String &substr) {
 
 bool substring(char *substr, const char *str, size_t start, size_t end) {
   if (start >= strlen(str)) {
-    LOG_ERROR("Invalid argument: start must be less than the string length");
+    AR_LOGE("Invalid argument: start must be less than the string length");
     return false;
   }
   const char *original = str;
@@ -266,7 +266,7 @@ bool substring(String &substr, const String &str, size_t start, size_t end) {
 bool remove(char *str, size_t index, size_t count) {
   size_t buffersize = strlen(str) + 1;
   if (index > buffersize - 1) {
-    LOG_ERROR("Invalid parameter: index must be less than length of string");
+    AR_LOGE("Invalid parameter: index must be less than length of string");
     return false;
   }
   if (count == 0) {
@@ -274,7 +274,7 @@ bool remove(char *str, size_t index, size_t count) {
   } else {
     int moved_len = strlen(str) - count;
     if (moved_len <= 0) {
-      LOG_ERROR("Invalid parameter: index + count must be less than string length");
+      AR_LOGE("Invalid parameter: index + count must be less than string length");
       return false;
     }
     char* p_start = str + index;
@@ -295,13 +295,13 @@ void replace(char *str, const char *old_substr, const char *new_substr,
   if (strcmp(old_substr, new_substr) == 0)
     return;
   int replacements = instancesOf((const char*)str, old_substr);
-  LOG_TRACE("Found", replacements, "instances of", debugString(old_substr),
-            "to replace with", debugString(new_substr));
+  AR_LOGV("Found %d instances of %s to replace with %s", replacements, 
+      debugString(old_substr), debugString(new_substr));
   if (replacements > 0) {
     size_t new_len = strlen(str) + (replacements *
                      (strlen(new_substr) - strlen(old_substr)));
     if (new_len >= buffer_size - 1) {
-      LOG_ERROR("Buffer too small for replacement string");
+      AR_LOGE("Buffer too small for replacement string");
       return;
     }
     int replacement_count = 0;
@@ -311,14 +311,14 @@ void replace(char *str, const char *old_substr, const char *new_substr,
     while (includes((const char*)p_old, old_substr)) {
       replacement_count++;
       size_t idx = indexOf(p_old, old_substr);
-      LOG_TRACE("Found", debugString(old_substr), "in", debugString(p_old),
-                "at index", idx);
+      AR_LOGV("Found %s in %s at index %d", debugString(old_substr), 
+          debugString(p_old), idx);
       for (size_t i = 0; i < idx; i++) {
-        // LOG_TRACE("Adding", debugString(*p_old), "to vector");
+        // AR_LOGV("Adding %s to vector", debugString(*p_old));
         tmp.push_back(*p_old++);
       }
       for (size_t i = 0; i < offset; i++) {
-        // LOG_TRACE("Adding", debugString(new_substr[i]), "to vector");
+        // AR_LOGV("Adding %s to vector", debugString(new_substr[i]));
         tmp.push_back(new_substr[i]);
       }
       p_old += strlen(old_substr);
@@ -327,12 +327,12 @@ void replace(char *str, const char *old_substr, const char *new_substr,
     }
     size_t remaining_chars = strlen(p_old);
     for (size_t i = 0; i < remaining_chars; i++) {
-      // LOG_TRACE("Adding", debugString(*p_old), "to vector");
+      // AR_LOGV("Adding %s to vector", debugString(*p_old));
       tmp.push_back(*p_old++);
     }
     memset(str, 0, buffer_size);
     strncpy(str, tmp.data(), tmp.size());
-    LOG_TRACE("Replaced", replacement_count, "- result:", debugString(str));
+    AR_LOGV("Replaced %d - result: %s", replacement_count, debugString(str));
   }
 }
 
@@ -353,7 +353,7 @@ static bool isWhitespace(const char c) {
 void trim(char *str, size_t buffer_length) {
   if (strlen(str) == 0)
     return;
-  LOG_TRACE("Trimming", debugString(str));
+  AR_LOGV("Trimming %s", debugString(str));
   char* s = str;
   size_t old_len = strlen(s);
   size_t leading = 0;
@@ -365,7 +365,7 @@ void trim(char *str, size_t buffer_length) {
       break;
     }
   }
-  // LOG_TRACE("Leading whitespace:", leading);
+  // AR_LOGV("Leading whitespaces: %d", leading);
   if (leading < old_len) {
     for (size_t i = old_len - 1; i >= 0; i--) {
       if (isWhitespace(s[i])) {
@@ -375,7 +375,7 @@ void trim(char *str, size_t buffer_length) {
       }
     }
   }
-  // LOG_TRACE("Trailing whitespace:", trailing);
+  // AR_LOGV("Trailing whitespaces: %d", trailing);
   if (leading > 0 || trailing > 0) {
     size_t new_len = old_len - leading - trailing + 1;
     if (new_len <= buffer_length) {
@@ -386,10 +386,10 @@ void trim(char *str, size_t buffer_length) {
       new_str[new_len - 1] = '\0';
       strcpy(str, new_str);
     } else {
-      PRINTLN("Input buffer too small!");
+      AR_LOGE("Input buffer too small!");
     }
   }
-  LOG_TRACE("Result:", debugString(str));
+  AR_LOGV("Result: %s", debugString(str));
 }
 
 // TODO: possible buffer problem for large strings
@@ -550,7 +550,7 @@ void base64Encode(String& b64_str, const uint8_t* buffer, size_t buffersize) {
       b64_str += '=';
     }
   }
-  LOG_TRACE("Result:", b64_str);
+  AR_LOGV("Result: %s", b64_str);
 }
 
 static inline bool isBase64(const char c) {

@@ -36,17 +36,17 @@ static int crcxmodem_table [256];
 static bool crcxmodem_table_is_initialized = false;
 static bool initializeCrcTable_() {
   if (!crcxmodem_table_is_initialized) {
-    LOG_TRACE("Initializing CRC table");
+    AR_LOGV("Initializing CRC table");
     // Unclear why this fails at i=255
     for (uint8_t i = 0; i < 255; i++) {
       crcxmodem_table[i] = initialCrc_(i);
-      // LOG_TRACE("CRC table [", i, "]=", crcxmodem_table[i]);
+      // AR_LOGV("CRC table [%d]=%d", i, crcxmodem_table[i]);
     }
     crcxmodem_table[255] = initialCrc_(255);
-    // LOG_TRACE("CRC table [255]=", crcxmodem_table[255]);
+    // AR_LOGV("CRC table [255]=%d", crcxmodem_table[255]);
     crcxmodem_table_is_initialized = true;
   } else {
-    LOG_TRACE("CRC table already initialized");
+    AR_LOGV("CRC table already initialized");
   }
   return crcxmodem_table_is_initialized;
 }
@@ -114,13 +114,13 @@ bool applyCrc(String &at_command, const char sep) {
   int crc = calculateCrc_(at_command);
   String hex_crc = "";
   intToHex(hex_crc, crc, CRC_LEN);
-  LOG_DEBUG("Applying CRC: ", crc, " -> ", hex_crc);
+  AR_LOGD("Applying CRC: %d -> %s", crc, hex_crc);
   at_command = at_command + sep + hex_crc;
   return true;
 }
 
 bool validateCrc(const char *response, const char sep) {
-  LOG_DEBUG("Validating CRC for", debugString(response));
+  AR_LOGD("Validating CRC for %s", debugString(response));
   size_t res_len = strlen(response);
   size_t crc_start = sepPos_(response);
   if (crc_start == res_len)

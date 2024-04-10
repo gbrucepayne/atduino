@@ -1,3 +1,8 @@
+/**
+ * @brief Example of AT client querying a modem and listening for
+ * unsolicited result codes
+*/
+#define ARDEBUG_ENABLED
 #include <Arduino.h>
 #include "atclient.h"
 
@@ -10,12 +15,12 @@ int urc_count = 0;
 uint32_t start_time = 0;
 
 void setup() {
-  LOG_SET_LEVEL(DebugLogLevel::LVL_TRACE);
+  ardebugSetLogLevel(ardebug::VERBOSE);
   Serial.begin(115200);
   ModemSerial.begin(MODEM_BAUD);
   delay(3000);
   Serial.print("***\nStarting basic example. DebugLogLevel");
-  Serial.println((int)LOG_GET_LEVEL());
+  Serial.println((int)ardebugLogLevel());
   start_time = millis();
 }
 

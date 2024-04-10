@@ -100,7 +100,7 @@ void test_replace_cstr() {
   #if defined TEST_ASSERT_EQUAL_CHAR_ARRAY
   TEST_ASSERT_EQUAL_CHAR_ARRAY(expected, cstr, strlen(expected));
   #else
-  LOG_INFO("\r\n  Expected:", at::debugString(expected), "\r\n  Got:", at::debugString(cstr));
+  AR_LOGI("\r\n\tExpected: %s\r\n\tGot: %s", at::debugString(expected), at::debugString(cstr));
   #endif
 }
 

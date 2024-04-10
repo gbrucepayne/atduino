@@ -6,7 +6,7 @@ bool AtServer::handleCommand() {
   bool success = false;
   char* req = commandPtr();
   bool crc_valid = (!crc || (crc && at::validateCrc(req)));
-  LOG_TRACE("CRC enabled?", crc, "valid:", crc_valid);
+  AR_LOGV("CRC enabled? %d; valid? %d", crc, crc_valid);
   if (!crc_valid) {
     last_error_code = AT_ERR_CRC;
   } else {
@@ -14,7 +14,7 @@ bool AtServer::handleCommand() {
       // Check for multiple commands based on AT_COMMAND_SEPARATORS
       // For each command loop through this->commands and process each
       if (crc) {
-        LOG_TRACE("Removing CRC");
+        AR_LOGV("Removing CRC");
         req[(strlen(req) - 1) - (CRC_LEN + 1)] = '\0';
       }
       const char* attn = at::startsWith(req, "AT") ? "AT" : "at";
@@ -24,7 +24,7 @@ bool AtServer::handleCommand() {
       req_count += at::instancesOf((const char*)req, AT_SEP);
       for (int i = 0; i < req_count; ++i) {
         while (*req == ' ') {
-          // LOG_TRACE("Ignoring spaces per V.25");
+          // AR_LOGV("Ignoring spaces per V.25");
           req++;
         }
         int req_length = strlen(req);
@@ -35,7 +35,7 @@ bool AtServer::handleCommand() {
           req_length = at::indexOf(req, AT_SEP);
         }
         if (req_length > sizeof(working_buffer)) {
-          LOG_WARN("Request length too long");
+          AR_LOGW("Request length too long");
           break;
         }
         at::substring(working_buffer, req, 0, req_length);
@@ -111,7 +111,7 @@ bool AtServer::addCommand(AtCommand* new_cmd, bool replace) {
   if (index > -1) {
     if (!replace)
       return false;
-    LOG_WARN("Replacing command", new_cmd->name);
+    AR_LOGW("Replacing command %s", new_cmd->name);
     commands.erase(commands.begin() + index);
   }
   commands.push_back(*new_cmd);
@@ -141,7 +141,7 @@ at_error_t AtServer::readSerial() {
     if (parsing == PARSE_NONE)
       parsing = PARSE_COMMAND;
     if (c == AT_CR) {
-      LOG_TRACE("Processing:", at::debugString(commandPtr()));
+      AR_LOGV("Processing: %s", debugString(commandPtr()));
       bool handled = handleCommand();
       parsing = PARSE_NONE;
       return handled ? 0 : last_error_code;
@@ -194,12 +194,12 @@ void AtServer::sendError() {
   char to_write[buffersize];
   strncpy(to_write, verbose ? vres_err : res_err, buffersize);
   if (crc) {
-    LOG_TRACE("Pre-CRC length", strlen(to_write));
+    AR_LOGV("Pre-CRC length: %d", strlen(to_write));
     at::applyCrc(to_write, buffersize);
-    LOG_TRACE("Post-CRC length", strlen(to_write));
+    AR_LOGV("Post-CRC length: %d", strlen(to_write));
     at::append(to_write, "\r\n", buffersize);
   }
-  LOG_TRACE("to_write length", strlen(to_write));
+  AR_LOGV("to_write length: %d", strlen(to_write));
   serial.write(to_write);
 }
 
@@ -208,7 +208,7 @@ bool AtServer::readSerialChar(bool ignore_unprintable) {
   if (serial.available() > 0) {
     if (!isRxBufferFull()) {
       char c = serial.read();
-      if (!printableChar(c, LOG_GET_LEVEL() > DebugLogLevel::LVL_DEBUG)) {
+      if (!printableChar(c, ardebugLogLevel() > ardebug::DEBUG)) {
         if (ignore_unprintable) {
           success = true;
         }

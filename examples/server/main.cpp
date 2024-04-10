@@ -1,7 +1,7 @@
 /**
  * @brief Illustrates use of the AT server with custom commands
 */
-
+#define ARDEBUG_ENABLED
 #include <Arduino.h>
 #include "atserver.h"
 
@@ -44,7 +44,7 @@ at_error_t writeHello(const char* params) {
 static at::AtCommand hello_cmd = {"+HELLO", readHello, runHello, testHello, writeHello};
 
 void setup() {
-  LOG_SET_LEVEL(DebugLogLevel::LVL_TRACE);
+  ardebugSetLogLevel(ardebug::VERBOSE);
   Serial.begin(115200);
   MicroSerial.begin(MICRO_BAUD);
   delay(3000);
@@ -59,5 +59,5 @@ void setup() {
 void loop() {
   int result = host.readSerial();
   if (result != 0)
-    LOG_WARN("Issue reading serial:", result);
+    AR_LOGW("Issue reading serial: %d", result);
 }
