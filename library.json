@@ -11,7 +11,7 @@
         "url": "https://github.com/gbrucepayne/atduino.git"
     },
     "dependencies": {
-        "hideakitai/DebugLog": "^0.6.6"
+        "gbrucepayne/ardebug": "https://github.com/gbrucepayne/ardebug.git"
     },
     "examples": [
         {
