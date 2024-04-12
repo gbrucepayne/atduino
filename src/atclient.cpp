@@ -10,8 +10,7 @@ static const char tx_trace_tag[] = "[TRACE][TX] >>>";
  * @param raw Adds a preamble for raw character logging
 */
 void AtClient::toggleRaw(bool raw) {
-  #ifdef ARDEBUG_ENABLED
-  if (ardebugLogLevel() > ardebug::DEBUG) {
+  if (ardebugGetLevel() > ARDEBUG_D) {
     if (raw) {
       if (!debug_raw)
         ardprintf("%s", rx_trace_tag);
@@ -22,7 +21,6 @@ void AtClient::toggleRaw(bool raw) {
       debug_raw = false;
     }
   }
-  #endif
 }
 
 char* AtClient::responsePtr() {
@@ -167,7 +165,7 @@ at_error_t AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) 
   setPendingCommand(at_command);
   if (crc) applyCrc(commandPtr(), tx_buffer_size);
   commandPtr()[strlen(commandPtr())] = '\r';
-  if (ardebugLogLevel() > ardebug::DEBUG)
+  if (ardebugGetLevel() > ARDEBUG_D)
     ardprintf("%s %s", tx_trace_tag, debugString(commandPtr()));
   size_t wrote = serial.print(commandPtr());
   if (wrote < strlen(commandPtr())) {
@@ -190,7 +188,7 @@ at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
   cmd_parsing = echo ? PARSE_ECHO : PARSE_RESPONSE;
   cmd_error = AT_ERR_GENERIC;
   uint16_t countdown = (uint16_t)(timeout_ms / 1000);
-  uint32_t tick = ardebugLogLevel() > ardebug::DEBUG ? 1 : 0;
+  uint32_t tick = ardebugGetLevel() > ARDEBUG_D ? 1 : 0;
   AR_LOGV("Timeout: %d ms; Countdown: %d s", timeout_ms, countdown);
   for (uint32_t start = millis(); millis() - start < timeout_ms;) {
     while (serial.available() > 0 && cmd_parsing < PARSE_OK) {
@@ -399,7 +397,7 @@ bool AtClient::readSerialChar(bool ignore_unprintable) {
   if (serial.available() > 0) {
     if (!isRxBufferFull()) {
       char c = serial.read();
-      if (!printableChar(c, ardebugLogLevel() > ardebug::DEBUG)) {
+      if (!printableChar(c, ardebugGetLevel() > ARDEBUG_D)) {
         if (!ignore_unprintable) success = false;
       } else {
         responsePtr()[strlen(responsePtr())] = c;

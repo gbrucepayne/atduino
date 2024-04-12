@@ -44,7 +44,7 @@ at_error_t writeHello(const char* params) {
 static at::AtCommand hello_cmd = {"+HELLO", readHello, runHello, testHello, writeHello};
 
 void setup() {
-  ardebugSetLogLevel(ardebug::VERBOSE);
+  ardebugSetLevel(ARDEBUG_V);
   Serial.begin(115200);
   MicroSerial.begin(MICRO_BAUD);
   delay(3000);

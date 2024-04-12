@@ -208,7 +208,7 @@ bool AtServer::readSerialChar(bool ignore_unprintable) {
   if (serial.available() > 0) {
     if (!isRxBufferFull()) {
       char c = serial.read();
-      if (!printableChar(c, ardebugLogLevel() > ardebug::DEBUG)) {
+      if (!printableChar(c, ardebugGetLevel() > ARDEBUG_D)) {
         if (ignore_unprintable) {
           success = true;
         }
