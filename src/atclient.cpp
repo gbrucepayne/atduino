@@ -2,8 +2,8 @@
 
 namespace at {
 
-static const char rx_trace_tag[] = "[RAW RX <<<] ";
-static const char tx_trace_tag[] = "[RAW TX >>>] ";
+static const char rx_trace_tag[] = "[V][RAW RX <<<] ";
+static const char tx_trace_tag[] = "[V][RAW TX >>>] ";
 
 /**
  * @brief Add a preamble to raw character debug or newline for other debug
