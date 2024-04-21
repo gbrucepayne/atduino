@@ -69,9 +69,14 @@ void AtClient::clearPendingCommand() {
 }
 
 bool AtClient::setPendingCommand(const char *at_command) {
-  if (strlen(at_command) > tx_buffer_size)
-    return false;   // invalid_argument("command too large");
-  strncpy(commandPtr(), at_command, tx_buffer_size);
+  if (strlen(at_command) > tx_buffer_size) {
+    AR_LOGE("Command %s too long for Tx buffer", at_command);
+    return false;
+  }
+  char tmp[tx_buffer_size];
+  strncpy(tmp, at_command, tx_buffer_size);
+  if (crc) applyCrc(tmp, tx_buffer_size);
+  snprintf(commandPtr(), tx_buffer_size, "%s\r", tmp);
   return true;
 }
 
@@ -146,8 +151,6 @@ at_error_t AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) 
   clearRxBuffer();
   serial.flush();   // Wait for any prior outgoing data to complete
   setPendingCommand(at_command);
-  if (crc) applyCrc(commandPtr(), tx_buffer_size);
-  commandPtr()[strlen(commandPtr())] = '\r';
   if (ardebugGetLevel() > ARDEBUG_D)
     ardprintf("%s%s\n", tx_trace_tag, debugString(commandPtr()));
   size_t wrote = serial.print(commandPtr());
