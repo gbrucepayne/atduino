@@ -2,8 +2,8 @@
 
 namespace at {
 
-static const char rx_trace_tag[] = "[TRACE][RX] <<<";
-static const char tx_trace_tag[] = "[TRACE][TX] >>>";
+static const char rx_trace_tag[] = "[RAW RX <<<] ";
+static const char tx_trace_tag[] = "[RAW TX >>>] ";
 
 /**
  * @brief Add a preamble to raw character debug or newline for other debug
@@ -85,24 +85,19 @@ char AtClient::lastCharRead(size_t n) {
 // If any data is on the serial port read until a match of read_until
 bool AtClient::checkUrc(const char* read_until, uint32_t timeout_ms,
                         const char prefix, uint16_t wait_ms) {
-  // if (strlen(commandPtr()) > 0 ||
-  //     (wait_ms == 0 && serial.available() == 0)  ||
-  //     busy) {
+  // TODO: semaphore lock
   if (wait_ms == 0 && serial.available() == 0) {
     // if (strlen(commandPtr()) > 0) AR_LOGW("AT command pending");
     // if (serial.available() == 0) AR_LOGE("No data");
     // if (busy) AR_LOGW("Busy with prior operation");
     return false;
   }
-  // AR_LOGV("Busy parsing URC");
-  // busy = true;
   if (read_until == nullptr)
     read_until = terminator;
   timeout_ms += wait_ms;
-  AR_LOGE("Processing URC until %s or %d", debugString(read_until), timeout_ms);
+  AR_LOGV("Processing URC until %s or %d", debugString(read_until), timeout_ms);
   toggleRaw(true);
   clearRxBuffer();
-  // response_ready = false;
   bool urc_found = false;
   for (uint32_t start = millis(); (millis() - start) < timeout_ms;) {
     if (!readSerialChar() && urc_found) {
@@ -140,33 +135,21 @@ bool AtClient::checkUrc(const char* read_until, uint32_t timeout_ms,
 }
 
 at_error_t AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) {
-  // if (strlen(commandPtr()) > 0 || serial.available() > 0 || busy) {
-  // if (busy) {
-  //   if (strlen(commandPtr()) > 0) {
-  //     AR_LOGE("Prior AT command pending");
-  //   } else {
-  //     AR_LOGE("Parsing URC data");
-  //   }
-  //   cmd_error = AT_ERR_BUSY;
-  //   return cmd_error;
-  // }
-  // AR_LOGV("Busy processing AT command/response");
-  // busy = true;
-  // response_ready = false;
+  // TODO: semaphore lock, possible URC event
   if (serial.available() > 0) {
     while (serial.available() > 0) {
       readSerialChar();
     }
     AR_LOGW("Dumping unsolicited Rx data: %s", debugString(responsePtr()));
   }
-  AR_LOGE("Sending command: %s", at_command);
+  AR_LOGD("Sending command: %s", at_command);
   clearRxBuffer();
   serial.flush();   // Wait for any prior outgoing data to complete
   setPendingCommand(at_command);
   if (crc) applyCrc(commandPtr(), tx_buffer_size);
   commandPtr()[strlen(commandPtr())] = '\r';
   if (ardebugGetLevel() > ARDEBUG_D)
-    ardprintf("%s %s", tx_trace_tag, debugString(commandPtr()));
+    ardprintf("%s%s\n", tx_trace_tag, debugString(commandPtr()));
   size_t wrote = serial.print(commandPtr());
   if (wrote < strlen(commandPtr())) {
     AR_LOGE("Failed to write all bytes");
@@ -183,7 +166,7 @@ at_error_t AtClient::sendAtCommand(const String &at_command, uint16_t timeout_ms
 
 at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
   // busy = true;   // should be redundant
-  AR_LOGE("Parsing response to %s for %d ms", debugString(commandPtr()),
+  AR_LOGV("Parsing response to %s for %d ms", debugString(commandPtr()),
       timeout_ms);
   cmd_parsing = echo ? PARSE_ECHO : PARSE_RESPONSE;
   cmd_error = AT_ERR_GENERIC;
@@ -197,7 +180,7 @@ at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
         cmd_error = AT_ERR_BAD_BYTE;
         cmd_parsing = PARSE_ERROR;
         toggleRaw(false);
-        AR_LOGW("Bad byte received in response");
+        AR_LOGE("Bad byte received in response");
         break;
       }
       char last = lastCharRead();
@@ -222,14 +205,14 @@ at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
           verbose = true;
         } else if (cmd_parsing == PARSE_CRC) {
           toggleRaw(false);
-          AR_LOGE("CRC parsing complete");
+          AR_LOGV("CRC parsing complete");
           if (!cmd_result_ok) {
             cmd_parsing = PARSE_ERROR;
           } else {
             if (validateCrc(res)) {
               cmd_parsing = PARSE_OK;
             } else {
-              AR_LOGE("Invalid CRC");
+              AR_LOGW("Invalid CRC");
               cmd_parsing = PARSE_ERROR;
               cmd_error = AT_ERR_CRC;
               cmd_result_ok = false;
@@ -243,7 +226,8 @@ at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
           if (!startsWith(res, commandPtr()))
             AR_LOGW("Unexpected pre-echo data removed: %s",
                      debugString(res, 0, strlen(res) - strlen(commandPtr())));
-          AR_LOGE("Echo received - clearing RX buffer");
+          AR_LOGV("Echo received - clearing RX buffer: %s",
+              debugString(responsePtr()));
           clearRxBuffer();   // remove echo from response
           cmd_parsing = PARSE_RESPONSE;
         } else {
@@ -260,7 +244,6 @@ at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
     }   // parsed available char
     if (cmd_parsing >= PARSE_OK) {
       toggleRaw(false);
-      AR_LOGV("Parsing complete");
       break;   // don't wait for timeout
     }
     if (tick > 0 && strlen(responsePtr()) == 0) {
@@ -297,10 +280,9 @@ at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
     response_ready = true;
     cmd_error = AT_OK;
   }
+  AR_LOGV("Parsing complete (error code %d) - clearing pending command: %s",
+      cmd_error, debugString(commandPtr()));
   clearPendingCommand();
-  // busy = false;
-  // if (cmd_error == AT_ERR_BAD_BYTE) AR_LOGW("Bad byte received in response");
-  // AR_LOGV("Finished parsing AT command response");
   return cmd_error;
 }
 
@@ -313,7 +295,7 @@ at_error_t AtClient::lastErrorCode(bool clear) {
 parse_state_t AtClient::parsingOk() {
   parse_state_t next_state = PARSE_OK;
   cmd_result_ok = true;
-  AR_LOGE("Result OK");
+  AR_LOGD("Result OK");
   AR_LOGV("Assessing pending command for CRC toggle: %s",
       debugString(commandPtr()));
   if (!this->crc) {
@@ -334,7 +316,7 @@ parse_state_t AtClient::parsingOk() {
     }
   }
   if (next_state == PARSE_CRC) {
-    AR_LOGE("Parsing CRC...");
+    AR_LOGV("Parsing CRC...");
   }
   return next_state;
 }
@@ -345,14 +327,14 @@ parse_state_t AtClient::parsingError() {
   delay(CHAR_DELAY);
   if (this->crc || serial.available() > 0) {
     next_state = PARSE_CRC;
-    AR_LOGE("Parsing CRC...");
+    AR_LOGV("Parsing CRC...");
   }
   return next_state;
 }
 
 parse_state_t AtClient::parsingShort(uint8_t current) {
   parse_state_t next_state = current;
-  AR_LOGE("Checking candidate short response code");
+  AR_LOGV("Checking candidate short response code");
   char* res = responsePtr();
   if (!startsWith(res, terminator)) {
     if (verbose) {
