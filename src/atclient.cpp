@@ -48,18 +48,19 @@ void AtClient::clearRxBuffer() {
   response_ready = false;
 }
 
-void AtClient::getResponse(char* response, const char* prefix, size_t buffersize) {
-  cleanResponse(prefix);
+void AtClient::getResponse(char* response, const char* prefix, size_t buffersize,
+                           bool clean) {
+  if (clean) cleanResponse(prefix);
   strncpy(response, responsePtr(), buffersize);
   response_ready = false;
 }
 
-void AtClient::getResponse(String& response, const char* prefix) {
+void AtClient::getResponse(String& response, const char* prefix, bool clean) {
   response = sgetResponse(prefix);
 }
 
-String AtClient::sgetResponse(const char* prefix) {
-  cleanResponse(prefix);
+String AtClient::sgetResponse(const char* prefix, bool clean) {
+  if (clean) cleanResponse(prefix);
   response_ready = false;
   return String(responsePtr());
 }
@@ -74,9 +75,9 @@ bool AtClient::setPendingCommand(const char *at_command) {
     return false;
   }
   char tmp[tx_buffer_size];
-  strncpy(tmp, at_command, tx_buffer_size);
-  if (crc) applyCrc(tmp, tx_buffer_size);
-  snprintf(commandPtr(), tx_buffer_size, "%s\r", tmp);
+  // strncpy(tmp, at_command, tx_buffer_size);
+  // if (crc) applyCrc(tmp, tx_buffer_size);
+  snprintf(commandPtr(), tx_buffer_size, "%s\r", at_command);
   return true;
 }
 
@@ -100,7 +101,10 @@ bool AtClient::checkUrc(const char* read_until, uint32_t timeout_ms,
   if (read_until == nullptr)
     read_until = terminator;
   timeout_ms += wait_ms;
-  AR_LOGV("Processing URC until %s or %d", debugString(read_until), timeout_ms);
+#ifndef ARDEBUG_DISABLED
+  AR_LOGV("Processing URC until %s or %d",
+      debugString(read_until).c_str(), timeout_ms);
+#endif
   toggleRaw(true);
   clearRxBuffer();
   bool urc_found = false;
@@ -117,7 +121,9 @@ bool AtClient::checkUrc(const char* read_until, uint32_t timeout_ms,
         if (!startsWith(responsePtr(), terminator) &&
             !startsWith(responsePtr(), prefix)) {
           toggleRaw(false);
-          AR_LOGW("Dumping pre-URC data: %s", debugString(responsePtr()));
+#ifndef ARDEBUG_DISABLED
+          AR_LOGW("Dumping pre-URC data: %s", sDbgRes().c_str());
+#endif
           clearRxBuffer();
           responsePtr()[0] = prefix;
           toggleRaw(true);
@@ -145,14 +151,18 @@ at_error_t AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) 
     while (serial.available() > 0) {
       readSerialChar();
     }
-    AR_LOGW("Dumping unsolicited Rx data: %s", debugString(responsePtr()));
+#ifndef ARDEBUG_DISABLED
+    AR_LOGW("Dumping unsolicited Rx data: %s", sDbgRes().c_str());
   }
   AR_LOGD("Sending command: %s", at_command);
+#endif
   clearRxBuffer();
   serial.flush();   // Wait for any prior outgoing data to complete
   setPendingCommand(at_command);
+#ifndef ARDEBUG_DISABLED
   if (ardebugGetLevel() > ARDEBUG_D)
-    ardprintf("%s%s\n", tx_trace_tag, debugString(commandPtr()));
+    ardprintf("%s%s\n", tx_trace_tag, sDbgReq().c_str());
+#endif
   size_t wrote = serial.print(commandPtr());
   if (wrote < strlen(commandPtr())) {
     AR_LOGE("Failed to write all bytes");
@@ -169,8 +179,9 @@ at_error_t AtClient::sendAtCommand(const String &at_command, uint16_t timeout_ms
 
 at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
   // busy = true;   // should be redundant
-  AR_LOGV("Parsing response to %s for %d ms", debugString(commandPtr()),
-      timeout_ms);
+#ifndef ARDEBUG_DISABLED
+  AR_LOGV("Parsing response to %s for %d ms", sDbgReq().c_str(), timeout_ms);
+#endif
   cmd_parsing = echo ? PARSE_ECHO : PARSE_RESPONSE;
   cmd_error = AT_ERR_GENERIC;
   uint16_t countdown = (uint16_t)(timeout_ms / 1000);
@@ -194,7 +205,10 @@ at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
           // check if V0 info suffix or multiline separator
           if (lastCharRead(2) != AT_CR) {
             toggleRaw(false);
-            AR_LOGW("Unexpected response data removed: %s", debugString(res));
+#ifndef ARDEBUG_DISABLED
+            AR_LOGW("Unexpected response data removed: %s",
+                debugString(res).c_str());
+#endif
             clearRxBuffer();
           }
         }
@@ -226,11 +240,13 @@ at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
         char* res = responsePtr();
         if (endsWith(res, commandPtr())) {
           toggleRaw(false);
-          if (!startsWith(res, commandPtr()))
-            AR_LOGW("Unexpected pre-echo data removed: %s",
-                     debugString(res, 0, strlen(res) - strlen(commandPtr())));
-          AR_LOGV("Echo received - clearing RX buffer: %s",
-              debugString(responsePtr()));
+#ifndef ARDEBUG_DISABLED
+          if (!startsWith(res, commandPtr())) {
+            String xtra = debugString(res, 0, strlen(res) - strlen(commandPtr()));
+            AR_LOGW("Unexpected pre-echo data removed: %s", xtra.c_str());
+          }
+          AR_LOGV("Echo received - clearing RX buffer: %s", sDbgRes().c_str());
+#endif
           clearRxBuffer();   // remove echo from response
           cmd_parsing = PARSE_RESPONSE;
         } else {
@@ -283,8 +299,11 @@ at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
     response_ready = true;
     cmd_error = AT_OK;
   }
+#ifndef ARDEBUG_DISABLED
   AR_LOGV("Parsing complete (error code %d) - clearing pending command: %s",
-      cmd_error, debugString(commandPtr()));
+      cmd_error, sDbgReq().c_str());
+  if (response_ready) AR_LOGV("Response: %s", sDbgRes().c_str());
+#endif
   clearPendingCommand();
   return cmd_error;
 }
@@ -298,9 +317,10 @@ at_error_t AtClient::lastErrorCode(bool clear) {
 parse_state_t AtClient::parsingOk() {
   parse_state_t next_state = PARSE_OK;
   cmd_result_ok = true;
+#ifndef ARDEBUG_DISABLED
   AR_LOGD("Result OK");
-  AR_LOGV("Assessing pending command for CRC toggle: %s",
-      debugString(commandPtr()));
+  AR_LOGV("Assessing pending command for CRC toggle: %s", sDbgReq().c_str());
+#endif
   if (!this->crc) {
     if (includes(commandPtr(), (const char*)"CRC=1\r") ||
         includes(commandPtr(), (const char*)"crc=1\r")) {
@@ -354,6 +374,10 @@ parse_state_t AtClient::parsingShort(uint8_t current) {
 }
 
 void AtClient::cleanResponse(const char *prefix) {
+  if (strlen(responsePtr()) == 0) {
+    AR_LOGD("No response to clean");
+    return;
+  }
   if (crc) {
     AR_LOGV("Removing CRC");
     unsigned short int crc_length = 1 + CRC_LEN + strlen(terminator);
@@ -361,16 +385,20 @@ void AtClient::cleanResponse(const char *prefix) {
     remove(responsePtr(), crc_offset, crc_length);
   }
   const char* to_remove = this->verbose ? vres_ok : res_ok;
-  AR_LOGV("Removing result code: %s", debugString(to_remove));
+#ifndef ARDEBUG_DISABLED
+  AR_LOGV("Removing result code: %s", debugString(to_remove).c_str());
+#endif
   replace(responsePtr(), to_remove, "", rx_buffer_size);
-  if (prefix != nullptr) {
-    AR_LOGV("Removing prefix: %S", prefix);
+  if (prefix != nullptr && strcmp(prefix, "") != 0) {
+    AR_LOGV("Removing prefix: %s", prefix);
     replace(responsePtr(), prefix, "", rx_buffer_size);
   }
   trim(responsePtr(), rx_buffer_size);
   replace(responsePtr(), "\r\n", "\n", rx_buffer_size);
   replace(responsePtr(), "\n\n", "\n", rx_buffer_size);
-  AR_LOGV("Trimmed and consolidated line feeds: %S", debugString(responsePtr()));
+#ifndef ARDEBUG_DISABLED
+  AR_LOGV("Trimmed and consolidated line feeds: %s", sDbgRes().c_str());
+#endif
 }
 
 /**
@@ -385,7 +413,9 @@ bool AtClient::readSerialChar(bool ignore_unprintable) {
       if (!printableChar(c, ardebugGetLevel() > ARDEBUG_D)) {
         if (!ignore_unprintable) success = false;
       } else {
-        responsePtr()[strlen(responsePtr())] = c;
+        size_t index = strlen(responsePtr());
+        responsePtr()[index] = c;
+        responsePtr()[index + 1] = '\0';
       }
     }
   }

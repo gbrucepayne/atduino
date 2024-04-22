@@ -141,7 +141,9 @@ at_error_t AtServer::readSerial() {
     if (parsing == PARSE_NONE)
       parsing = PARSE_COMMAND;
     if (c == AT_CR) {
-      AR_LOGV("Processing: %s", debugString(commandPtr()));
+#ifndef ARDEBUG_DISABLED
+      AR_LOGV("Processing: %s", debugString(commandPtr()).c_str());
+#endif
       bool handled = handleCommand();
       parsing = PARSE_NONE;
       return handled ? 0 : last_error_code;

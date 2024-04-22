@@ -94,7 +94,7 @@ bool append(String& target, const String& substr) {
 }
 
 bool includes(const char *str, const char *substr) {
-  // AR_LOGV("Assessing %s for %s", debugString(str), debugString(substr));
+  // AR_LOGV("Assessing %s for %s", debugString(str), debugString(substr).c_str());
   return strstr(str, substr) != nullptr;
 }
 
@@ -155,16 +155,16 @@ int indexOf(const char *str, const char c) {
 }
 
 int instancesOf(const char *str, const char *substr) {
-  // AR_LOGV("Searching %s for %s", debugString(str), debugString(substr));
+  // AR_LOGV("Searching %s for %s", debugString(str).c_str(), debugString(substr).c_str());
   int instances = 0;
   size_t s_len = strlen(str);
   size_t ss_len = strlen(substr);
   size_t char_matches = 0;
   if (ss_len > 0) {
     for (size_t i = 0, j = 0; i < s_len; i++) {
-      // AR_LOGV("Assessing %s vs %s", debugString(str[i]), debugString(substr[j]));
+      // AR_LOGV("Assessing %s vs %s", debugString(str[i]).c_str(), debugString(substr[j]).c_str());
       if (str[i] == substr[j]) {
-        // AR_LOGV("Found match for %s", debugString(substr[j]));
+        // AR_LOGV("Found match for %s", debugString(substr[j]).c_str());
         char_matches++;
         j++;
         if (char_matches == ss_len) {
@@ -173,7 +173,7 @@ int instancesOf(const char *str, const char *substr) {
           j = 0;
         }
       } else if (char_matches > 0) {
-        // AR_LOGV("Mismatch for %s vs %s", debugString(substr[j]), debugString(str[i]));
+        // AR_LOGV("Mismatch for %s vs %s", debugString(substr[j]).c_str(), debugString(str[i]).c_str());
         char_matches = 0;
         i--;
         j = 0;
@@ -266,7 +266,7 @@ bool substring(String &substr, const String &str, size_t start, size_t end) {
 bool remove(char *str, size_t index, size_t count) {
   size_t buffersize = strlen(str) + 1;
   if (index > buffersize - 1) {
-    AR_LOGE("Invalid parameter: index must be less than length of string");
+    AR_LOGE("Invalid parameter: index exceeds string length");
     return false;
   }
   if (count == 0) {
@@ -274,7 +274,7 @@ bool remove(char *str, size_t index, size_t count) {
   } else {
     int moved_len = strlen(str) - count;
     if (moved_len <= 0) {
-      AR_LOGE("Invalid parameter: index + count must be less than string length");
+      AR_LOGE("Invalid parameter: index + count exceeds string length");
       return false;
     }
     char* p_start = str + index;
@@ -295,8 +295,10 @@ void replace(char *str, const char *old_substr, const char *new_substr,
   if (strcmp(old_substr, new_substr) == 0)
     return;
   int replacements = instancesOf((const char*)str, old_substr);
+#ifndef ARDEBUG_DISABLED
   AR_LOGV("Found %d instances of %s to replace with %s", replacements, 
-      debugString(old_substr), debugString(new_substr));
+      debugString(old_substr).c_str(), debugString(new_substr).c_str());
+#endif
   if (replacements > 0) {
     size_t new_len = strlen(str) + (replacements *
                      (strlen(new_substr) - strlen(old_substr)));
@@ -311,14 +313,16 @@ void replace(char *str, const char *old_substr, const char *new_substr,
     while (includes((const char*)p_old, old_substr)) {
       replacement_count++;
       size_t idx = indexOf(p_old, old_substr);
-      AR_LOGV("Found %s in %s at index %d", debugString(old_substr), 
-          debugString(p_old), idx);
+#ifndef ARDEBUG_DISABLED
+      AR_LOGV("Found %s in %s at index %d", debugString(old_substr).c_str(), 
+          debugString(p_old).c_str(), idx);
+#endif
       for (size_t i = 0; i < idx; i++) {
-        // AR_LOGV("Adding %s to vector", debugString(*p_old));
+        // AR_LOGV("Adding %s to vector", debugString(*p_old).c_str());
         tmp.push_back(*p_old++);
       }
       for (size_t i = 0; i < offset; i++) {
-        // AR_LOGV("Adding %s to vector", debugString(new_substr[i]));
+        // AR_LOGV("Adding %s to vector", debugString(new_substr[i]).c_str());
         tmp.push_back(new_substr[i]);
       }
       p_old += strlen(old_substr);
@@ -327,12 +331,14 @@ void replace(char *str, const char *old_substr, const char *new_substr,
     }
     size_t remaining_chars = strlen(p_old);
     for (size_t i = 0; i < remaining_chars; i++) {
-      // AR_LOGV("Adding %s to vector", debugString(*p_old));
+      // AR_LOGV("Adding %s to vector", debugString(*p_old).c_str());
       tmp.push_back(*p_old++);
     }
     memset(str, 0, buffer_size);
     strncpy(str, tmp.data(), tmp.size());
-    AR_LOGV("Replaced %d - result: %s", replacement_count, debugString(str));
+#ifndef ARDEBUG_DISABLED
+    AR_LOGV("Replaced %d - result: %s", replacement_count, debugString(str).c_str());
+#endif
   }
 }
 
@@ -353,7 +359,9 @@ static bool isWhitespace(const char c) {
 void trim(char *str, size_t buffer_length) {
   if (strlen(str) == 0)
     return;
-  AR_LOGV("Trimming %s", debugString(str));
+#ifndef ARDEBUG_DISABLED
+  AR_LOGV("Trimming %s", debugString(str).c_str());
+#endif
   char* s = str;
   size_t old_len = strlen(s);
   size_t leading = 0;
@@ -389,7 +397,9 @@ void trim(char *str, size_t buffer_length) {
       AR_LOGE("Input buffer too small!");
     }
   }
-  AR_LOGV("Result: %s", debugString(str));
+#ifndef ARDEBUG_DISABLED
+  AR_LOGV("Result: %s", debugString(str).c_str());
+#endif
 }
 
 // TODO: possible buffer problem for large strings

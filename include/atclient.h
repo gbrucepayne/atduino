@@ -101,9 +101,11 @@ class AtClient {
      * @param buffer_size The buffer size of the target string
      */
     void getResponse(char* response, const char* prefix = nullptr,
-                     size_t buffer_size = AT_CLIENT_RX_BUFFERSIZE);
-    void getResponse(String& response, const char* prefix = nullptr);
-    String sgetResponse(const char* prefix = nullptr);
+                     size_t buffer_size = AT_CLIENT_RX_BUFFERSIZE,
+                     bool clean = true);
+    void getResponse(String& response, const char* prefix = nullptr,
+                     bool clean = true);
+    String sgetResponse(const char* prefix = nullptr, bool clean = true);
 
     /**
      * @brief Check the serial line for unsolicited data with prefix `+`
@@ -136,8 +138,8 @@ class AtClient {
 
   protected:
     Stream& serial;
-    static const size_t rx_buffer_size = AT_CLIENT_RX_BUFFERSIZE;
-    static const size_t tx_buffer_size = AT_CLIENT_TX_BUFFERSIZE;
+    const size_t rx_buffer_size = AT_CLIENT_RX_BUFFERSIZE;
+    const size_t tx_buffer_size = AT_CLIENT_TX_BUFFERSIZE;
     // bool busy = false;
     uint8_t cmd_parsing = 0;
     bool data_mode = false;
@@ -147,6 +149,8 @@ class AtClient {
     void toggleRaw(bool raw);
     char* commandPtr();
     char* responsePtr();
+    String sDbgReq() { return at::debugString(commandPtr()); }
+    String sDbgRes() { return at::debugString(responsePtr()); }
 
 };
 

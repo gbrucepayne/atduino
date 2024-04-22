@@ -120,7 +120,9 @@ bool applyCrc(String &at_command, const char sep) {
 }
 
 bool validateCrc(const char *response, const char sep) {
-  AR_LOGD("Validating CRC for %s", debugString(response));
+#ifndef ARDEBUG_DISABLED
+  AR_LOGD("Validating CRC for %s", debugString(response).c_str());
+#endif
   size_t res_len = strlen(response);
   size_t crc_start = sepPos_(response);
   if (crc_start == res_len)
