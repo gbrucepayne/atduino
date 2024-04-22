@@ -318,7 +318,7 @@ parse_state_t AtClient::parsingOk() {
   parse_state_t next_state = PARSE_OK;
   cmd_result_ok = true;
 #ifndef ARDEBUG_DISABLED
-  AR_LOGD("Result OK");
+  AR_LOGD("Result OK: %s", sDbgRes().c_str());
   AR_LOGV("Assessing pending command for CRC toggle: %s", sDbgReq().c_str());
 #endif
   if (!this->crc) {
