@@ -18,6 +18,7 @@ uint32_t command_interval_ms = 15000;
 int max_commands = -1;
 int urc_count = 0;
 uint32_t start_time = 0;
+const char* test_cmd = "AT";
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
@@ -50,16 +51,21 @@ void loop() {
   } else if ((millis() - start_time) % command_interval_ms == 0) {
     if (ModemSerial.available() == 0 &&
         (max_commands == -1 || command_count < max_commands)) {
+      command_count++;
       digitalWrite(LED_BUILTIN, HIGH);
       Serial.println("\r\nSending basic AT command");
-      boolean success = modem.sendAtCommand("AT") == AT_OK;
-      if (success) {
-        command_count++;
-      } else {
+      if (modem.sendAtCommand(test_cmd) != AT_OK) {
         Serial.println("WARNING: Problem sending command");
       }
       Serial.print("Last error code: ");
       Serial.println(modem.lastErrorCode());
+      if (modem.responseReady()) {
+        String res_str = modem.sgetResponse();
+        if (res_str.length() > 0) {
+          Serial.print("Response: ");
+          Serial.println(res_str);
+        }
+      }
       digitalWrite(LED_BUILTIN, LOW);
     } else {
       Serial.println("Serial Rx data pending");
