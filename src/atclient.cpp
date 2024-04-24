@@ -137,7 +137,9 @@ bool AtClient::checkUrc(const char* read_until, uint32_t timeout_ms,
   }
   toggleRaw(false);
   if (!response_ready) {
-    AR_LOGW("Timed out waiting for prefix and/or terminator");
+    if (strlen(responsePtr()) > 0)
+      AR_LOGW("Timed out waiting for prefix and/or terminator on: %s",
+          sDbgRes().c_str());
     clearRxBuffer();
   }
   // busy = false;
