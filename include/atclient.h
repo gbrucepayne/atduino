@@ -32,8 +32,9 @@ class AtClient {
     bool quiet = false;
     bool crc = false;
     char terminator[3];
-    char vres_ok[7];
-    char vres_err[10];
+    char vres_ok[8];
+    char vres_err[16];
+    char cme_err[16];
     char res_ok[3];
     char res_err[3];
     #if defined(__AVR__)
@@ -66,8 +67,9 @@ class AtClient {
      */
     AtClient(Stream &serial) : serial(serial) {
       snprintf(terminator, 3, "%c%c", AT_CR, AT_LF);
-      snprintf(vres_ok, 7, "%c%cOK%c%c", AT_CR, AT_LF, AT_CR, AT_LF);
-      snprintf(vres_err, 10, "%c%cERROR%c%c", AT_CR, AT_LF, AT_CR, AT_LF);
+      snprintf(vres_ok, 8, "%c%cOK%c%c", AT_CR, AT_LF, AT_CR, AT_LF);
+      snprintf(vres_err, 16, "%c%cERROR%c%c", AT_CR, AT_LF, AT_CR, AT_LF);
+      snprintf(cme_err, 16, "%c%c+CME ERROR:", AT_CR, AT_LF);
       snprintf(res_ok, 3, "0%c", AT_CR);
       snprintf(res_err, 3, "4%c", AT_CR);
     };

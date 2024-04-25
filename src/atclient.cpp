@@ -138,8 +138,7 @@ bool AtClient::checkUrc(const char* read_until, uint32_t timeout_ms,
   toggleRaw(false);
   if (!response_ready) {
     if (strlen(responsePtr()) > 0)
-      AR_LOGW("Timed out waiting for prefix and/or terminator on: %s",
-          sDbgRes().c_str());
+      AR_LOGW("URC timeout no prefix and/or terminator: %s", sDbgRes().c_str());
     clearRxBuffer();
   }
   // busy = false;
@@ -218,7 +217,7 @@ at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
           toggleRaw(false);
           cmd_parsing = parsingOk();
           verbose = true;
-        } else if (endsWith(res, vres_err)) {
+        } else if (endsWith(res, vres_err) || startsWith(res, cme_err)) {
           toggleRaw(false);
           cmd_parsing = parsingError();
           verbose = true;
@@ -296,6 +295,25 @@ at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
       AR_LOGW("CRC detected but not expected");
       crc = true;
       cmd_error = AT_ERR_CRC_CONFIG;
+    } else if (startsWith(responsePtr(), cme_err)) {
+      const size_t cme_errno_buffer = 24;
+      if (strlen(responsePtr()) < cme_errno_buffer) {
+        char tmp[cme_errno_buffer];
+        strncpy(tmp, responsePtr(), strlen(responsePtr()));
+        replace(tmp, cme_err, "", cme_errno_buffer);
+        if (isNumber(tmp)) {
+          AR_LOGD("Found CME ERROR code - clearing response buffer");
+          cmd_error = atoi(tmp);
+          clearRxBuffer();
+        }
+      } else {
+        response_ready = true; // Verbose response available to retrieve
+#ifndef ARDEBUG_DISABLED
+        String tmp = String(responsePtr());
+        tmp.trim();
+        AR_LOGE("%s", tmp.c_str());
+#endif
+      }
     }
   } else {
     response_ready = true;
@@ -348,7 +366,7 @@ parse_state_t AtClient::parsingOk() {
 
 parse_state_t AtClient::parsingError() {
   parse_state_t next_state = PARSE_ERROR;
-  AR_LOGW("Result ERROR");
+  AR_LOGE("Result ERROR");
   delay(CHAR_DELAY);
   if (this->crc || serial.available() > 0) {
     next_state = PARSE_CRC;
