@@ -143,9 +143,9 @@ bool remove(String& str, size_t index, size_t count = 0);
  * @param new_substr The replacement substring
  * @param buffer_size The size of the (c)string buffer
  */
-void replace(char* str, const char* old_substr, const char* new_substr,
+bool replace(char* str, const char* old_substr, const char* new_substr,
              size_t buffer_size, size_t max_count = 0);
-void replace(String& str, const String& old_substr, const String& new_substr);
+bool replace(String& str, const String& old_substr, const String& new_substr);
 
 /**
  * @brief Remove leading and trailing whitespace from a string
@@ -177,6 +177,27 @@ long getNextParameter(char* at_param, const char* response,
  * @param result_size The c-string buffer size
  */
 void uintToChar(uint32_t n, char* result, size_t result_size);
+
+/**
+ * @brief Check if a string is valid numeric (digit) characters
+ * 
+ * @param candidate The candidate (c)string
+*/
+bool isNumber(const char* candidate);
+
+/**
+ * @brief Check if a string is valid binary characters
+ * 
+ * @param candidate The candidate (c)string
+*/
+bool isBinary(const char* candidate);
+
+/**
+ * @brief Convert a binary string to 32-bit unsigned integer
+ * 
+ * @param bin_str The binary (c)string
+*/
+uint32_t binToInt(const char* bin_str);
 
 /**
  * @brief Check if a string is valid hexadecimal characters

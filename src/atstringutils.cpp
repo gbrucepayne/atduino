@@ -290,10 +290,10 @@ bool remove(String &str, size_t index, size_t count) {
   return true;
 }
 
-void replace(char *str, const char *old_substr, const char *new_substr,
+bool replace(char *str, const char *old_substr, const char *new_substr,
              size_t buffer_size, size_t max_count) {
   if (strcmp(old_substr, new_substr) == 0)
-    return;
+    return true;
   int replacements = instancesOf((const char*)str, old_substr);
 #ifndef ARDEBUG_DISABLED
   AR_LOGV("Found %d instances of %s to replace with %s", replacements, 
@@ -304,7 +304,7 @@ void replace(char *str, const char *old_substr, const char *new_substr,
                      (strlen(new_substr) - strlen(old_substr)));
     if (new_len >= buffer_size - 1) {
       AR_LOGE("Buffer too small for replacement string");
-      return;
+      return false;
     }
     int replacement_count = 0;
     char *p_old = str;
@@ -340,10 +340,12 @@ void replace(char *str, const char *old_substr, const char *new_substr,
     AR_LOGV("Replaced %d - result: %s", replacement_count, debugString(str).c_str());
 #endif
   }
+  return true;
 }
 
-void replace(String &str, const String &old_substr, const String &new_substr) {
+bool replace(String &str, const String &old_substr, const String &new_substr) {
   str.replace(old_substr, new_substr);
+  return true;
 }
 
 /**
@@ -357,58 +359,29 @@ static bool isWhitespace(const char c) {
 }
 
 void trim(char *str, size_t buffer_length) {
-  if (strlen(str) == 0)
-    return;
+  size_t replaced = 0;
+  size_t olen = strlen(str);
+  if (olen > 0) {
+    for (size_t i = 0; i < olen; i++) {
+      if (!isWhitespace(str[i])) break;
+      replaced++;
+    }
+    memmove(str, str + replaced, olen - replaced + 1);
+    size_t end = strlen(str) - 1;
+    for (size_t i = end; i >= 0; i--) {
+      if (!isWhitespace(str[i])) break;
+      replaced++;
+      str[i] = '\0';
+    }
 #ifndef ARDEBUG_DISABLED
-  AR_LOGV("Trimming %s", debugString(str).c_str());
+    AR_LOGV("Trimmed %d: %s", replaced, debugString(str).c_str());
 #endif
-  char* s = str;
-  size_t old_len = strlen(s);
-  size_t leading = 0;
-  size_t trailing = 0;
-  for (size_t i = 0; i < old_len; i++) {
-    if (isWhitespace(s[i])) {
-      leading++;
-    } else {
-      break;
-    }
   }
-  // AR_LOGV("Leading whitespaces: %d", leading);
-  if (leading < old_len) {
-    for (size_t i = old_len - 1; i >= 0; i--) {
-      if (isWhitespace(s[i])) {
-        trailing++;
-      } else {
-        break;
-      }
-    }
-  }
-  // AR_LOGV("Trailing whitespaces: %d", trailing);
-  if (leading > 0 || trailing > 0) {
-    size_t new_len = old_len - leading - trailing + 1;
-    if (new_len <= buffer_length) {
-      char new_str[new_len];
-      for (size_t i = leading, j = 0; i < old_len - trailing; i++, j++) {
-        new_str[j] = s[i];
-      }
-      new_str[new_len - 1] = '\0';
-      strcpy(str, new_str);
-    } else {
-      AR_LOGE("Input buffer too small!");
-    }
-  }
-#ifndef ARDEBUG_DISABLED
-  AR_LOGV("Result: %s", debugString(str).c_str());
-#endif
 }
 
 // TODO: possible buffer problem for large strings
 void trim(String &str) {
-  size_t buffer_length = str.length() + 1;
-  char cstr[buffer_length];
-  str.toCharArray(cstr, buffer_length);
-  trim(cstr, buffer_length);
-  str = String(cstr);
+  str.trim();
 }
 
 long getNextParameter(char* at_param, const char* response,
@@ -449,9 +422,46 @@ void uintToChar(uint32_t n, char *result, size_t result_size) {
   }
 }
 
-// ---------------- HEX / BASE64 CONVERSIONS -----------------------
+// ---------------- HEX / BASE64 / BINARY CONVERSIONS -----------------------
 
 static const char* HEX_CHARSET = "0123456789ABCDEF";
+
+bool isNumber(const char* candidate) {
+  size_t str_len = strlen(candidate);
+  for (size_t i = 0; i < str_len; i++) {
+    if (!std::isdigit(candidate[i]) &&
+        candidate[i] != '.' &&
+        candidate[i] != '-' &&
+        candidate[i] != ' ')
+      return false;
+  }
+  return true;
+}
+
+bool isBinary(const char* candidate) {
+  size_t str_len = strlen(candidate);
+  for (size_t i = 0; i < str_len; i++) {
+    if (candidate[i] != '1' &&
+        candidate[i] != '0' &&
+        candidate[i] != ' ')
+      return false;
+  }
+  return true;
+}
+
+uint32_t binToInt(const char* bin_str) {
+  uint32_t value = 0;
+  if (isBinary(bin_str)) {
+    size_t len = strlen(bin_str);
+    for (int i = 0; i < len; i++) {
+      value *= 2;
+      if (bin_str[i] == '1') value++;
+    }
+  } else {
+    AR_LOGE("Invalid binary string %s", bin_str);
+  }
+  return value;
+}
 
 bool isHex(const char* candidate) {
   if ((strlen(candidate) % 2) != 0)
