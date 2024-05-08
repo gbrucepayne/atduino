@@ -27,16 +27,6 @@ namespace at {
  */
 class AtClient {
   private:
-    bool echo = true;
-    bool verbose = true;
-    bool quiet = false;
-    bool crc = false;
-    char terminator[3];
-    char vres_ok[8];
-    char vres_err[16];
-    char cme_err[16];
-    char res_ok[3];
-    char res_err[3];
     #if defined(__AVR__)
     char res_buffer_P[AT_CLIENT_RX_BUFFERSIZE] PROGMEM;
     char pending_command_P[AT_CLIENT_TX_BUFFERSIZE] PROGMEM;
@@ -57,6 +47,18 @@ class AtClient {
     parse_state_t parsingShort(uint8_t current);
     void cleanResponse(const char* prefix = nullptr);
     
+  protected:
+    bool echo = true;
+    bool verbose = true;
+    bool quiet = false;
+    bool crc = false;
+    char terminator[3];
+    char vres_ok[8];
+    char vres_err[16];
+    char cme_err[16];
+    char res_ok[3];
+    char res_err[3];
+
   public:
     bool autoflag = false;   // true toggles verbose flag based on parsing
     
