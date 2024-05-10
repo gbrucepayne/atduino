@@ -52,6 +52,7 @@ void AtClient::getResponse(char* response, const char* prefix, size_t buffersize
                            bool clean) {
   if (clean) cleanResponse(prefix);
   strncpy(response, responsePtr(), buffersize);
+  clearRxBuffer();
   response_ready = false;
 }
 
@@ -61,6 +62,7 @@ void AtClient::getResponse(String& response, const char* prefix, bool clean) {
 
 String AtClient::sgetResponse(const char* prefix, bool clean) {
   if (clean) cleanResponse(prefix);
+  clearRxBuffer();
   response_ready = false;
   return String(responsePtr());
 }
