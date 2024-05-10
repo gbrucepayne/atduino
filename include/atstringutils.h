@@ -151,9 +151,9 @@ bool replace(String& str, const String& old_substr, const String& new_substr);
  * @brief Remove leading and trailing whitespace from a string
  * 
  * @param str The string to trim
- * @param buffer_length The size of the (c)string buffer
+ * @param buffer_size The size of the (c)string buffer
  */
-void trim(char* str, size_t buffer_length);
+void trim(char* str, size_t buffer_size);
 void trim(String& str);
 
 /**
@@ -161,13 +161,13 @@ void trim(String& str);
  * 
  * @param at_param The buffer to store the result in
  * @param response Pointer to the response (or offset) char array
- * @param buffersize The parameter buffer size
+ * @param buffer_size The parameter buffer size
  * @param sep The separator (default `,` based on V.25 standard)
  * @returns -1 if unable to extract the parameter
  * @returns The offset of the next parameter relative to response pointer
 */
 long getNextParameter(char* at_param, const char* response,
-                      size_t buffersize, const char sep = ',');
+                      size_t buffer_size, const char sep = ',');
 
 /**
  * @brief Convert an unsigned integer to ASCII string
@@ -231,10 +231,10 @@ uint32_t hexToInt(const String& hex_string);
  * 
  * @param b64_str The output string (length >= base64StringLength + 1)
  * @param buffer The data buffer to encode
- * @param buffer_len The length of the data buffer to encode
+ * @param buffer_size The length of the data buffer to encode
  */
-void base64Encode(char* b64_str, const uint8_t* buffer, size_t buffer_len);
-void base64Encode(String& b64_str, const uint8_t* buffer, size_t buffer_len);
+void base64Encode(char* b64_str, const uint8_t* buffer, size_t buffer_size);
+void base64Encode(String& b64_str, const uint8_t* buffer, size_t buffer_size);
 
 /**
  * @brief Decode a Base64 string to a char buffer
@@ -255,10 +255,10 @@ size_t base64BufferLength(const char* b64_str);
 /**
  * @brief Get the required string length for an decoded Base64 buffer
  * 
- * @param buffersize 
+ * @param buffer_size 
  * @return size_t 
  */
-size_t base64StringLength(size_t buffersize);
+size_t base64StringLength(size_t buffer_size);
 
 }   // namespace at
 

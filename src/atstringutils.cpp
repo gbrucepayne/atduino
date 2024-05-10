@@ -81,9 +81,8 @@ String debugString(const char c) {
 bool append(char* target, const char* substr, size_t buffer_size) {
   size_t app_idx = strlen(target);
   size_t adder = strlen(substr);
-  size_t new_size = app_idx + adder;
-  if (new_size >= buffer_size) return false;
-  strncpy(target + app_idx, substr, app_idx + adder);
+  if ((app_idx + adder) >= (buffer_size - 1)) return false;
+  strncpy(target + app_idx, substr, buffer_size);
   target[app_idx + adder + 1] = '\0';
   return true;
 }
@@ -264,8 +263,8 @@ bool substring(String &substr, const String &str, size_t start, size_t end) {
 }
 
 bool remove(char *str, size_t index, size_t count) {
-  size_t buffersize = strlen(str) + 1;
-  if (index > buffersize - 1) {
+  size_t buffer_size = strlen(str) + 1;
+  if (index > buffer_size - 1) {
     AR_LOGE("Invalid parameter: index exceeds string length");
     return false;
   }
@@ -280,7 +279,7 @@ bool remove(char *str, size_t index, size_t count) {
     char* p_start = str + index;
     char* p_end = str + index + count;
     memmove(p_start, p_end, moved_len);
-    str[buffersize] = '\0';
+    str[buffer_size] = '\0';
   }
   return true;
 }
@@ -334,8 +333,7 @@ bool replace(char *str, const char *old_substr, const char *new_substr,
       // AR_LOGV("Adding %s to vector", debugString(*p_old).c_str());
       tmp.push_back(*p_old++);
     }
-    memset(str, 0, buffer_size);
-    strncpy(str, tmp.data(), tmp.size());
+    strncpy(str, tmp.data(), buffer_size);
 #ifndef ARDEBUG_DISABLED
     AR_LOGV("Replaced %d - result: %s", replacement_count, debugString(str).c_str());
 #endif
@@ -358,7 +356,7 @@ static bool isWhitespace(const char c) {
   return (c == '\r' || c == '\n' || c == ' ');
 }
 
-void trim(char *str, size_t buffer_length) {
+void trim(char *str, size_t buffer_size) {
   size_t replaced = 0;
   size_t olen = strlen(str);
   if (olen > 0) {
@@ -385,7 +383,7 @@ void trim(String &str) {
 }
 
 long getNextParameter(char* at_param, const char* response,
-                      size_t buffersize, const char sep) {
+                      size_t buffer_size, const char sep) {
   if (strlen(response) == 0)
     return -1;
   int extra_param_count = instancesOf(response, sep);
@@ -499,13 +497,13 @@ uint32_t hexToInt(const String& hex_value) {
 static const char* B64_CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                  "abcdefghijklmnopqrstuvwxyz0123456789+/";
 
-void base64Encode(char* b64_str, const uint8_t* buffer, size_t buffer_len) {
+void base64Encode(char* b64_str, const uint8_t* buffer, size_t buffer_size) {
   int i = 0;
   int j = 0;
   uint8_t char_array_3[3];
   uint8_t char_array_4[4];
   size_t out_idx = 0;
-  while (buffer_len--) {
+  while (buffer_size--) {
     char_array_3[i++] = *(buffer++);
     if (i == 3) {
       char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
@@ -536,13 +534,13 @@ void base64Encode(char* b64_str, const uint8_t* buffer, size_t buffer_len) {
   b64_str[out_idx] = '\0';
 }
 
-void base64Encode(String& b64_str, const uint8_t* buffer, size_t buffersize) {
+void base64Encode(String& b64_str, const uint8_t* buffer, size_t buffer_size) {
   int i = 0;
   int j = 0;
   uint8_t char_array_3[3];
   uint8_t char_array_4[4];
   // size_t out_idx = 0;
-  while (buffersize--) {
+  while (buffer_size--) {
     char_array_3[i++] = *(buffer++);
     if (i == 3) {
       char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
@@ -640,8 +638,8 @@ size_t base64BufferLength(const char* b64_str) {
   return buf_len;
 }
 
-size_t base64StringLength(size_t buffersize) {
-  return ((4 * buffersize / 3) + 3) & ~3;
+size_t base64StringLength(size_t buffer_size) {
+  return ((4 * buffer_size / 3) + 3) & ~3;
 }
 
 }   // namespace at

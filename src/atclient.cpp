@@ -48,10 +48,10 @@ void AtClient::clearRxBuffer() {
   response_ready = false;
 }
 
-void AtClient::getResponse(char* response, const char* prefix, size_t buffersize,
+void AtClient::getResponse(char* response, const char* prefix, size_t buffer_size,
                            bool clean) {
   if (clean) cleanResponse(prefix);
-  strncpy(response, responsePtr(), buffersize);
+  strncpy(response, responsePtr(), buffer_size);
   clearRxBuffer();
   response_ready = false;
 }
@@ -301,7 +301,7 @@ at_error_t AtClient::readAtResponse(uint16_t timeout_ms) {
       const size_t cme_errno_buffer = 24;
       if (strlen(responsePtr()) < cme_errno_buffer) {
         char tmp[cme_errno_buffer];
-        strncpy(tmp, responsePtr(), strlen(responsePtr()));
+        strncpy(tmp, responsePtr(), cme_errno_buffer);
         replace(tmp, cme_err, "", cme_errno_buffer);
         if (isNumber(tmp)) {
           AR_LOGD("Found CME ERROR code - clearing response buffer");

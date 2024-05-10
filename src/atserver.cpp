@@ -181,25 +181,25 @@ void AtServer::send(String& str, bool ok, bool error) {
 }
 
 void AtServer::sendOk() {
-  int buffersize = 16;
-  char to_write[buffersize];
-  strncpy(to_write, verbose ? vres_ok : res_ok, buffersize);
+  int buffer_size = 16;
+  char to_write[buffer_size];
+  strncpy(to_write, verbose ? vres_ok : res_ok, buffer_size);
   if (crc) {
-    at::applyCrc(to_write, buffersize);
-    at::append(to_write, "\r\n", buffersize);
+    at::applyCrc(to_write, buffer_size);
+    at::append(to_write, "\r\n", buffer_size);
   }
   serial.write(to_write);
 }
 
 void AtServer::sendError() {
-  int buffersize = 24;
-  char to_write[buffersize];
-  strncpy(to_write, verbose ? vres_err : res_err, buffersize);
+  int buffer_size = 24;
+  char to_write[buffer_size];
+  strncpy(to_write, verbose ? vres_err : res_err, buffer_size);
   if (crc) {
     AR_LOGV("Pre-CRC length: %d", strlen(to_write));
-    at::applyCrc(to_write, buffersize);
+    at::applyCrc(to_write, buffer_size);
     AR_LOGV("Post-CRC length: %d", strlen(to_write));
-    at::append(to_write, "\r\n", buffersize);
+    at::append(to_write, "\r\n", buffer_size);
   }
   AR_LOGV("to_write length: %d", strlen(to_write));
   serial.write(to_write);

@@ -87,16 +87,16 @@ void test_substring_cstr_to_end() {
 }
 
 void test_replace_cstr() {
-  const int buffersize = 64;
-  // char cstr[buffersize] = "test\r\nstring\r\none";
+  const int buffer_size = 64;
+  // char cstr[buffer_size] = "test\r\nstring\r\none";
   // char to_replace[] = "\r\n";
   // char replace_with[] = " ";
   // char expected[] = "test string one";
-  char cstr[buffersize] = "\r\n+GSN: 00000000SKYEE3D\r\n\r\nOK\r\n";
+  char cstr[buffer_size] = "\r\n+GSN: 00000000SKYEE3D\r\n\r\nOK\r\n";
   char to_replace[] = "\r\nOK\r\n";
   char replace_with[] = "";
   char expected[] = "\r\n+GSN: 00000000SKYEE3D\r\n";
-  at::replace(cstr, to_replace, replace_with, buffersize);
+  at::replace(cstr, to_replace, replace_with, buffer_size);
   #if defined TEST_ASSERT_EQUAL_CHAR_ARRAY
   TEST_ASSERT_EQUAL_CHAR_ARRAY(expected, cstr, strlen(expected));
   #else
@@ -143,10 +143,10 @@ void test_hexToInt_cstr() {
 
 void test_base64Encode() {
   unsigned char data[] = { 1, 2, 3, 4 };
-  size_t bufferlen = sizeof(data) / sizeof(data[0]);
-  size_t b64_len = at::base64StringLength(bufferlen) + 1;
+  size_t buffer_size = sizeof(data) / sizeof(data[0]);
+  size_t b64_len = at::base64StringLength(buffer_size) + 1;
   char result[b64_len];
-  at::base64Encode(result, data, bufferlen);
+  at::base64Encode(result, data, buffer_size);
   char expected[] = "AQIDBA==";
   #if defined TEST_ASSERT_EQUAL_CHAR_ARRAY
   TEST_ASSERT_EQUAL_CHAR_ARRAY(expected, result, strlen(expected));
