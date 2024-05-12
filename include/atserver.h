@@ -50,7 +50,7 @@ class AtServer {
     #endif
     char working_buffer[128];
     bool initialized = false;
-    parse_state_t parsing = PARSE_NONE;
+    parse_state_t parsing = AT_PARSE_NONE;
     at_error_t last_error_code = 0;
     std::vector<AtCommand> commands = {};
     bool readSerialChar(bool ignore_unprintable = true);

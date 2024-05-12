@@ -8,7 +8,7 @@ bool AtServer::handleCommand() {
   bool crc_valid = (!crc || (crc && at::validateCrc(req)));
   AR_LOGV("CRC enabled? %d; valid? %d", crc, crc_valid);
   if (!crc_valid) {
-    last_error_code = AT_ERR_CRC;
+    last_error_code = AT_ERR_CMD_CRC;
   } else {
     if (at::startsWith(req, "AT") || at::startsWith(req, "at")) {
       // Check for multiple commands based on AT_COMMAND_SEPARATORS
@@ -138,14 +138,14 @@ at_error_t AtServer::readSerial() {
     }
     if (echo)
       serial.write(c);
-    if (parsing == PARSE_NONE)
-      parsing = PARSE_COMMAND;
+    if (parsing == AT_PARSE_NONE)
+      parsing = AT_PARSE_COMMAND;
     if (c == AT_CR) {
 #ifndef ARDEBUG_DISABLED
       AR_LOGV("Processing: %s", debugString(commandPtr()).c_str());
 #endif
       bool handled = handleCommand();
-      parsing = PARSE_NONE;
+      parsing = AT_PARSE_NONE;
       return handled ? 0 : last_error_code;
     }
   }

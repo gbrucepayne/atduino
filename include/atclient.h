@@ -120,7 +120,7 @@ class AtClient {
      * @return true if unsolicited data found
      */
     bool checkUrc(const char* read_until=nullptr,
-                  uint32_t timeout_ms = URC_TIMEOUT_MS,
+                  uint32_t timeout_ms = AT_URC_TIMEOUT_MS,
                   const char prefix = '+',
                   uint16_t wait_ms = 0);
 
