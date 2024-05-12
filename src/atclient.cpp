@@ -157,12 +157,12 @@ at_error_t AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) 
 #ifndef ARDEBUG_DISABLED
     AR_LOGW("Dumping unsolicited Rx data: %s", sDbgRes().c_str());
   }
-  AR_LOGD("Sending command: %s", at_command);
 #endif
   clearRxBuffer();
   serial.flush();   // Wait for any prior outgoing data to complete
   setPendingCommand(at_command);
 #ifndef ARDEBUG_DISABLED
+  AR_LOGD("Sending command: %s", sDbgReq().c_str());
   if (ardebugGetLevel() > ARDEBUG_D)
     ardprintf("%s%s\n", tx_trace_tag, sDbgReq().c_str());
 #endif

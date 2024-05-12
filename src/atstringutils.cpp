@@ -63,6 +63,8 @@ String debugString(const String &str, size_t start, size_t end) {
       debug_string += "<lf>";
     } else if (c < 32 || c > 125) {
       debug_string += "[" + String((int)c) + "]";
+    // } else if (c == '%') {   // escape for printf
+    //   debug_string += "%" + c;
     } else {
       debug_string += c;
     }
