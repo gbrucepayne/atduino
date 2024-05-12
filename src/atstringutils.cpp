@@ -14,6 +14,7 @@ namespace at {
 
 bool printableChar(const char c, bool print) {
   bool printable = true;
+#ifndef ARDEBUG_DISABLED
   char to_print[8] = "";
   if (c == 8) {
     snprintf(to_print, 8, "<bs>");
@@ -29,6 +30,7 @@ bool printableChar(const char c, bool print) {
   }
   if (print)
     ardprintf(to_print);
+#endif
   return printable;
 }
 
@@ -48,6 +50,7 @@ void debugPrint(const String& str) {
 
 String debugString(const String &str, size_t start, size_t end) {
   String debug_string = "";
+#ifndef ARDEBUG_DISABLED
   size_t str_len = str.length();
   if (start > str_len)
     start = 0;
@@ -69,6 +72,7 @@ String debugString(const String &str, size_t start, size_t end) {
       debug_string += c;
     }
   }
+#endif
   return debug_string;
 }
 
@@ -296,10 +300,8 @@ bool replace(char *str, const char *old_substr, const char *new_substr,
   if (strcmp(old_substr, new_substr) == 0)
     return true;
   int replacements = instancesOf((const char*)str, old_substr);
-#ifndef ARDEBUG_DISABLED
   AR_LOGV("Found %d instances of %s to replace with %s", replacements, 
       debugString(old_substr).c_str(), debugString(new_substr).c_str());
-#endif
   if (replacements > 0) {
     size_t new_len = strlen(str) + (replacements *
                      (strlen(new_substr) - strlen(old_substr)));
@@ -314,10 +316,8 @@ bool replace(char *str, const char *old_substr, const char *new_substr,
     while (includes((const char*)p_old, old_substr)) {
       replacement_count++;
       size_t idx = indexOf(p_old, old_substr);
-#ifndef ARDEBUG_DISABLED
       AR_LOGV("Found %s in %s at index %d", debugString(old_substr).c_str(), 
           debugString(p_old).c_str(), idx);
-#endif
       for (size_t i = 0; i < idx; i++) {
         // AR_LOGV("Adding %s to vector", debugString(*p_old).c_str());
         tmp.push_back(*p_old++);
@@ -330,15 +330,20 @@ bool replace(char *str, const char *old_substr, const char *new_substr,
       if (max_count > 0 && replacement_count >= max_count)
         break;
     }
-    size_t remaining_chars = strlen(p_old);
-    for (size_t i = 0; i < remaining_chars; i++) {
-      // AR_LOGV("Adding %s to vector", debugString(*p_old).c_str());
-      tmp.push_back(*p_old++);
+    if (tmp.size() < new_len) {
+      size_t remaining_chars = strlen(p_old);
+      for (size_t i = 0; i < remaining_chars; i++) {
+        // AR_LOGV("Adding %s to vector", debugString(*p_old).c_str());
+        tmp.push_back(*p_old++);
+      }
     }
     strncpy(str, tmp.data(), buffer_size);
-#ifndef ARDEBUG_DISABLED
-    AR_LOGV("Replaced %d - result: %s", replacement_count, debugString(str).c_str());
-#endif
+    if (strlen(tmp.data()) >= buffer_size) {
+      AR_LOGW("Resulting string exceeds buffer size - truncating");
+      str[buffer_size - 1] = 0;
+    }
+    AR_LOGV("Replaced %d - result: %s",
+        replacement_count, debugString(str).c_str());
   }
   return true;
 }
@@ -373,9 +378,7 @@ void trim(char *str, size_t buffer_size) {
       replaced++;
       str[i] = '\0';
     }
-#ifndef ARDEBUG_DISABLED
     AR_LOGV("Trimmed %d: %s", replaced, debugString(str).c_str());
-#endif
   }
 }
 
