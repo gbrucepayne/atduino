@@ -337,6 +337,7 @@ bool replace(char *str, const char *old_substr, const char *new_substr,
         tmp.push_back(*p_old++);
       }
     }
+    tmp.push_back(0);   // terminate cstring
     strncpy(str, tmp.data(), buffer_size);
     if (strlen(tmp.data()) >= buffer_size) {
       AR_LOGW("Resulting string exceeds buffer size - truncating");
