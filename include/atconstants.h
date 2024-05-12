@@ -21,17 +21,15 @@
 // Error codes for AT communications
 typedef unsigned short at_error_t;
 // V.25 compatible
-#define AT_OK 0
-#define AT_RING 2   // repurpose for unsolicited result codes (URC)
-#define AT_ERROR 4
+#define AT_OK 0   // V.25 standard
+#define AT_URC 2   // repurpose `RING` for unsolicited result codes (URC)
+#define AT_ERR_TIMEOUT 3   // repurpose `NO CARRIER` for modem unavailable
+#define AT_ERROR 4   // V.25 standard
 // Orbcomm satellite-modem compatible
-#define AT_ERR_CMD_CRC 100
+#define AT_ERR_CMD_CRC 100   // Bad CRC on received command
 // Custom-defined for this library
-#define AT_ERR_TIMEOUT 255
-#define AT_ERR_CRC_CONFIG 254
-#define AT_ERR_REENTRANT 253
-#define AT_ERR_BUSY 252
-#define AT_ERR_BAD_BYTE 251
+#define AT_ERR_BAD_BYTE 255   // Non-ASCII character received on serial
+#define AT_ERR_CRC_CONFIG 254   // CRC expected but not found or vice versa
 
 // Internal use within this library
 typedef unsigned short parse_state_t;
