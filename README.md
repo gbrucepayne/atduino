@@ -39,10 +39,10 @@ This is the main mode of intended use. The logic flow is as follows:
     (`AT_TIMEOUT_DEFAULT_MS`).
 
 2. Response parsing:
-    * Transitions through states `ECHO`, `INFO`, (*optional*) `CRC` to either
-    `RESULT_OK` or `RESULT_ERROR`;
-    * If timeout is exceeded, parsing stops and indicates `AT_TIMEOUT` failure;
-    * (Optional) validation of checksum, failure indicates `AT_CRC_RX_ERROR`;
+    * Transitions through states `_ECHO`, `_RESPONSE`, (*optional*) `_CRC`
+    to either `_OK` or `_ERROR`;
+    * If timeout is exceeded, parsing stops and indicates `AT_ERR_TIMEOUT`;
+    * (Optional) validation of checksum, failure indicates `AT_ERR_CMD_CRC`;
     * Other modem error codes received will be indicated transparently;
     * Successful parsing will place the response into a buffer for retrieval;
     * Sets the last error code or `AT_OK` (0) if successful;
@@ -53,7 +53,8 @@ This is the main mode of intended use. The logic flow is as follows:
 All other leading/trailing whitespace is removed, and multi-line responses are
 separated by a single line feed (`\n`). Retrieval clears the *get* buffer.
 
-4. The reason for unsuccessful commands can be queried using `lastErrorCode()`.
+4. A virtual function `lastErrorCode()` is intended to be defined for modems
+that support this concept (e.g. query `S80?` on Orbcomm satellite modem).
 
 ### Unsolicited Result Codes (URC)
 

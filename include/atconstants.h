@@ -41,6 +41,6 @@ typedef unsigned short parse_state_t;
 #define AT_PARSE_CRC 3
 #define AT_PARSE_OK 4
 #define AT_PARSE_ERROR 5
-#define AT_PARSE_COMMAND 6
+#define AT_PARSE_COMMAND 6   // Server-side
 
 #endif   // AT_CONSTANTS_H
