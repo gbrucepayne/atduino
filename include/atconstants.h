@@ -27,6 +27,7 @@ typedef unsigned short at_error_t;
 #define AT_ERROR 4   // V.25 standard
 // Orbcomm satellite-modem compatible
 #define AT_ERR_CMD_CRC 100   // Bad CRC on received command
+#define AT_ERR_CMD_UNKNOWN 101
 // Custom-defined for this library
 #define AT_ERR_BAD_BYTE 255   // Non-ASCII character received on serial
 #define AT_ERR_CRC_CONFIG 254   // CRC expected but not found or vice versa
