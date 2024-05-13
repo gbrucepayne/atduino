@@ -8,8 +8,8 @@
 #define AT_TIMEOUT_MS 1000   // default timeout for command responses
 #define AT_URC_TIMEOUT_MS 250   // default timeout checking for unsolicited
 
-#define AT_CLIENT_RX_BUFFERSIZE 32768
-#define AT_CLIENT_TX_BUFFERSIZE 32768
+#define AT_CLIENT_RX_BUFFERSIZE 4096  // empirical test WROOM32 buffer overflow
+#define AT_CLIENT_TX_BUFFERSIZE 4096
 
 #define AT_SERVER_RX_BUFFERSIZE 256
 
@@ -22,8 +22,8 @@
 typedef unsigned short at_error_t;
 // V.25 compatible
 #define AT_OK 0   // V.25 standard
-#define AT_URC 2   // repurpose `RING` for unsolicited result codes (URC)
-#define AT_ERR_TIMEOUT 3   // repurpose `NO CARRIER` for modem unavailable
+#define AT_URC 2   // repurpose V.25 `RING` for unsolicited result codes (URC)
+#define AT_ERR_TIMEOUT 3   // repurpose V.25 `NO CARRIER` for modem unavailable
 #define AT_ERROR 4   // V.25 standard
 // Orbcomm satellite-modem compatible
 #define AT_ERR_CMD_CRC 100   // Bad CRC on received command
