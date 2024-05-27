@@ -8,10 +8,22 @@
 #define AT_TIMEOUT_MS 1000   // default timeout for command responses
 #define AT_URC_TIMEOUT_MS 250   // default timeout checking for unsolicited
 
+#ifndef AT_CLIENT_RX_BUFFERSIZE
 #define AT_CLIENT_RX_BUFFERSIZE 4096  // empirical test WROOM32 buffer overflow
+#endif
+#if (AT_CLIENT_RX_BUFFERSIZE > 4096)
+#error "Rx buffer too large for dynamic allocation"
+#endif
+#ifndef AT_CLIENT_TX_BUFFERSIZE
 #define AT_CLIENT_TX_BUFFERSIZE 4096
+#endif
+#if (AT_CLIENT_TX_BUFFERSIZE > 4096)
+#error "Tx buffer too large for dynamic allocation"
+#endif
 
+#ifndef AT_SERVER_RX_BUFFERSIZE
 #define AT_SERVER_RX_BUFFERSIZE 256
+#endif
 
 #define AT_CR '\r'   // line terminator (default 0x0C)
 #define AT_LF '\n'   // response line formatter (default 0x0A)
