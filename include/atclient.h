@@ -27,13 +27,13 @@ namespace at {
  */
 class AtClient {
   private:
-    #if defined(__AVR__)
-    char res_buffer_P[AT_CLIENT_RX_BUFFERSIZE] PROGMEM;
-    char pending_command_P[AT_CLIENT_TX_BUFFERSIZE] PROGMEM;
-    #else
-    char res_buffer[AT_CLIENT_RX_BUFFERSIZE];
-    char pending_command[AT_CLIENT_TX_BUFFERSIZE];
-    #endif
+#if defined(__AVR__)
+    char at_rx_buffer_P[AT_CLIENT_RX_BUFFERSIZE];
+    char at_tx_buffer_P[AT_CLIENT_TX_BUFFERSIZE];
+#else
+    char at_rx_buffer[AT_CLIENT_RX_BUFFERSIZE];
+    char at_tx_buffer[AT_CLIENT_TX_BUFFERSIZE];
+#endif // progmem
     bool response_ready = false;
     bool cmd_result_ok = false;
     bool cmd_crc_found = false;

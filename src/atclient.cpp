@@ -24,19 +24,19 @@ void AtClient::toggleRaw(bool raw) {
 }
 
 char* AtClient::responsePtr() {
-  #if defined(__AVR__)
-  return &res_buffer_P[0];   // may need to extract to SRAM first?
-  #else  
-  return &res_buffer[0];
-  #endif
+#if defined(__AVR__)
+  return &at_rx_buffer_P[0];
+#else  
+  return &at_rx_buffer[0];
+#endif
 }
 
 char* AtClient::commandPtr() {
-  #if defined(__AVR__)
-  return &pending_command_P[0];
-  #else
-  return &pending_command[0];
-  #endif
+#if defined(__AVR__)
+  return &at_tx_buffer_P[0];
+#else
+  return &at_tx_buffer[0];
+#endif
 }
 
 bool AtClient::isRxBufferFull() {
@@ -428,13 +428,12 @@ void AtClient::cleanResponse(const char *prefix) {
  * @returns false if character is invalid else true (success or no data)
 */
 bool AtClient::readSerialChar(bool ignore_unprintable) {
-  bool success = true;
+  bool success = serial.available() == 0;
   if (serial.available() > 0) {
     if (!isRxBufferFull()) {
       char c = serial.read();
-      if (!printableChar(c, ardebugGetLevel() > ARDEBUG_D)) {
-        if (!ignore_unprintable) success = false;
-      } else {
+      if (printableChar(c, ardebugGetLevel() > ARDEBUG_D) || ignore_unprintable) {
+        success = true;
         size_t index = strlen(responsePtr());
         responsePtr()[index] = c;
         responsePtr()[index + 1] = '\0';
