@@ -41,7 +41,6 @@ class AtClient {
     bool debug_raw = false;
     bool isRxBufferFull();
     bool setPendingCommand(const char* at_command);
-    at_error_t readAtResponse(uint16_t timeout = AT_TIMEOUT_MS);
     parse_state_t parsingOk();
     parse_state_t parsingError();
     parse_state_t parsingShort(uint8_t current);
@@ -58,6 +57,7 @@ class AtClient {
     char cme_err[16];
     char res_ok[3];
     char res_err[3];
+    at_error_t readAtResponse(uint16_t timeout = AT_TIMEOUT_MS);
 
   public:
     bool autoflag = false;   // true toggles verbose flag based on parsing

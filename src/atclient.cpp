@@ -173,7 +173,8 @@ at_error_t AtClient::sendAtCommand(const char *at_command, uint16_t timeout_ms) 
     return cmd_error;
   }
   serial.flush();
-  return readAtResponse(timeout_ms);
+  if (timeout_ms > 0) return readAtResponse(timeout_ms);
+  else return AT_PENDING;
 }
 
 at_error_t AtClient::sendAtCommand(const String &at_command, uint16_t timeout_ms) {

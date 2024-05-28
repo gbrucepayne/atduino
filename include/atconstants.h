@@ -43,6 +43,7 @@ typedef unsigned short at_error_t;
 // Custom-defined for this library
 #define AT_ERR_BAD_BYTE 255   // Non-ASCII character received on serial
 #define AT_ERR_CRC_CONFIG 254   // CRC expected but not found or vice versa
+#define AT_PENDING 253
 
 // Internal use within this library
 typedef unsigned short parse_state_t;
