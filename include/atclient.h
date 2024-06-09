@@ -112,14 +112,19 @@ class AtClient {
     String sgetResponse(const char* prefix = nullptr, bool clean = true);
 
     /**
-     * @brief Check the serial line for unsolicited data with prefix `+`
+     * @brief Check the serial line for unsolicited data with designated prefix.
+     * Allows the prefix character to be specified, a time to wait for data,
+     * and a timeout after data has started to be received until the terminator
+     * (read_until) is found.
      * 
-     * @param read_until The line terminator (default <cr><lf>)
-     * @param timeout_ms Maximum time to wait for terminator in milliseconds
-     * @return false if busy processing a command or no/invalid data found 
+     * @param read_until The line terminator (uses <cr><lf> if none specified)
+     * @param timeout_ms Maximum time to wait for terminator in milliseconds if data is present (default 250)
+     * @param prefix The character designating unsolicited output (default `+`)
+     * @param wait_ms Optional time to wait for data to be present
+     * @return false if criteria are not met within wait_ms + timeout
      * @return true if unsolicited data found
      */
-    bool checkUrc(const char* read_until=nullptr,
+    bool checkUrc(const char* read_until = nullptr,
                   uint32_t timeout_ms = AT_URC_TIMEOUT_MS,
                   const char prefix = '+',
                   uint16_t wait_ms = 0);
