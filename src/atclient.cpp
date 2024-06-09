@@ -96,11 +96,11 @@ bool AtClient::checkUrc(const char* read_until, uint32_t timeout_ms,
   // TODO: semaphore lock
   if (wait_ms == 0 && serial.available() == 0) {
     // if (strlen(commandPtr()) > 0) AR_LOGW("AT command pending");
-    // if (serial.available() == 0) AR_LOGE("No data");
+    // if (serial.available() == 0) AR_LOGD("No data");
     // if (busy) AR_LOGW("Busy with prior operation");
     return false;
   }
-  if (read_until == nullptr)
+  if (read_until == nullptr || strlen(read_until) == 0)
     read_until = terminator;
   timeout_ms += wait_ms;
 #ifndef ARDEBUG_DISABLED
